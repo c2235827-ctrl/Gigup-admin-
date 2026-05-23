@@ -1,4 +1,4 @@
-import { Stats, Order, User, Plan, AppSetting, DashboardData } from '../types';
+import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal } from '../types';
 
 const BASE_URL = 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
 
@@ -331,6 +331,57 @@ let mockSettings: AppSetting[] = [
   { key: 'min_topup', value: '2000', label: 'Minimum Top-Up', description: SETTING_LABELS.min_topup.desc },
   { key: 'signup_bonus_mb', value: '4096', label: 'Signup Bonus Size', description: SETTING_LABELS.signup_bonus_mb.desc },
   { key: 'referral_bonus_mb', value: '500', label: 'Referral Bonus Size', description: SETTING_LABELS.referral_bonus_mb.desc }
+];
+
+export let mockWithdrawals: Withdrawal[] = [
+  {
+    id: "w-1",
+    amount: 2000.00,
+    bank_name: "Access Bank",
+    account_number: "0123456789",
+    account_name: "John Doe",
+    status: "pending",
+    admin_note: null,
+    created_at: "2026-05-20T11:00:00Z",
+    processed_at: null,
+    users: { full_name: "John Doe", phone: "08012345678" }
+  },
+  {
+    id: "w-2",
+    amount: 1500.00,
+    bank_name: "GTBank",
+    account_number: "0112233445",
+    account_name: "Amina Bello",
+    status: "pending",
+    admin_note: null,
+    created_at: "2026-05-21T14:30:00Z",
+    processed_at: null,
+    users: { full_name: "Amina Bello", phone: "09055556666" }
+  },
+  {
+    id: "w-3",
+    amount: 2500.00,
+    bank_name: "Zenith Bank",
+    account_number: "2233445566",
+    account_name: "Babajide Cole",
+    status: "pending",
+    admin_note: null,
+    created_at: "2026-05-22T09:12:00Z",
+    processed_at: null,
+    users: { full_name: "Babajide Cole", phone: "08031122334" }
+  },
+  {
+    id: "w-4",
+    amount: 3000.00,
+    bank_name: "UBA",
+    account_number: "2088334455",
+    account_name: "Bisi Adebayo",
+    status: "paid",
+    admin_note: "Paid via mobile app",
+    created_at: "2026-05-18T10:00:00Z",
+    processed_at: "2026-05-18T12:00:00Z",
+    users: { full_name: "Bisi Adebayo", phone: "08112223334" }
+  }
 ];
 
 // Helper to get headers for API calls
@@ -741,6 +792,67 @@ export async function requeryOrder(
 
   if (!res.ok) {
     throw new Error('Failed to query order');
+  }
+
+  return await res.json();
+}
+
+export async function fetchWithdrawals(
+  secret: string,
+  status: 'pending' | 'paid' | 'rejected'
+): Promise<{ success: boolean; withdrawals: Withdrawal[] }> {
+  if (getMockMode()) {
+    const list = mockWithdrawals.filter(w => w.status === status);
+    return {
+      success: true,
+      withdrawals: list
+    };
+  }
+
+  const res = await fetch(`${BASE_URL}/admin-manage?section=withdrawals&status=${status}`, {
+    headers: getHeaders(secret)
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to load withdrawals: ${res.statusText}`);
+  }
+
+  return await res.json();
+}
+
+export async function processWithdrawal(
+  secret: string,
+  withdrawalId: string,
+  status: 'paid' | 'rejected',
+  adminNote?: string
+): Promise<{ success: boolean; message: string }> {
+  if (getMockMode()) {
+    const idx = mockWithdrawals.findIndex(w => w.id === withdrawalId);
+    if (idx !== -1) {
+      mockWithdrawals[idx] = {
+        ...mockWithdrawals[idx],
+        status: status,
+        admin_note: adminNote || null,
+        processed_at: new Date().toISOString()
+      };
+      return { success: true, message: `Withdrawal successfully marked as ${status} (mock)` };
+    }
+    return { success: false, message: 'Withdrawal not found' };
+  }
+
+  const res = await fetch(`${BASE_URL}/admin-manage`, {
+    method: 'POST',
+    headers: getHeaders(secret),
+    body: JSON.stringify({
+      action: 'process_withdrawal',
+      withdrawal_id: withdrawalId,
+      status: status,
+      admin_note: adminNote
+    })
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to process withdrawal: ${res.statusText}`);
   }
 
   return await res.json();

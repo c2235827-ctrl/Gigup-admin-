@@ -53,6 +53,22 @@ export interface AppSetting {
   description: string;
 }
 
+export interface Withdrawal {
+  id: string;
+  amount: number;
+  bank_name: string;
+  account_number: string;
+  account_name: string;
+  status: 'pending' | 'paid' | 'rejected';
+  admin_note: string | null;
+  created_at: string;
+  processed_at: string | null;
+  users?: {
+    full_name: string;
+    phone: string;
+  } | null;
+}
+
 export interface DashboardData {
   stats: Stats;
   recent_orders: Order[];

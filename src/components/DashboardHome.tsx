@@ -10,7 +10,8 @@ import {
   Phone,
   Wallet,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  Coins
 } from 'lucide-react';
 import { Stats, Order, User } from '../types';
 import { formatNaira, formatDateTime, getInitials } from '../utils/formatters';
@@ -19,8 +20,11 @@ interface DashboardHomeProps {
   stats: Stats;
   recentOrders: Order[];
   recentUsers: User[];
+  pendingWithdrawalsCount: number;
+  pendingWithdrawalsSum: number;
   onNavigateToOrders: (filterPending: boolean) => void;
   onNavigateToUsers: () => void;
+  onNavigateToWithdrawals: () => void;
   onSelectOrder: (order: Order) => void;
   onRefresh: () => void;
   isRefreshing: boolean;
@@ -30,8 +34,11 @@ export default function DashboardHome({
   stats,
   recentOrders,
   recentUsers,
+  pendingWithdrawalsCount,
+  pendingWithdrawalsSum,
   onNavigateToOrders,
   onNavigateToUsers,
+  onNavigateToWithdrawals,
   onSelectOrder,
   onRefresh,
   isRefreshing
@@ -113,7 +120,7 @@ export default function DashboardHome({
       </div>
 
       {/* STAT CARDS ROW */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
         {/* TOTAL USERS */}
         <motion.div 
           variants={cardVariants}
@@ -204,6 +211,38 @@ export default function DashboardHome({
             )}
           </div>
         </motion.div>
+
+        {/* PENDING WITHDRAWALS */}
+        <motion.div 
+          variants={cardVariants}
+          onClick={onNavigateToWithdrawals}
+          className={`p-5 rounded-xl border shadow-geometric flex flex-col justify-between cursor-pointer transition-all h-40 ${
+            pendingWithdrawalsCount > 0 
+              ? 'bg-red-50/70 border-red-200 hover:bg-white hover:border-red-500 hover:shadow-geometric-lg' 
+              : 'bg-white border-slate-105 hover:border-slate-300 hover:shadow-geometric-lg'
+          }`}
+        >
+          <div className="flex justify-between items-start">
+            <span className={`text-[11px] font-bold uppercase tracking-wider ${pendingWithdrawalsCount > 0 ? 'text-red-600' : 'text-slate-500'}`}>Pending Withdrawals</span>
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+              pendingWithdrawalsCount > 0 ? 'bg-red-100 text-red-650' : 'bg-slate-105 text-slate-500'
+            }`}>
+              <Coins className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="mt-2">
+            <h3 className={`text-2xl font-bold font-mono ${pendingWithdrawalsCount > 0 ? 'text-red-505 font-extrabold text-[#EF4444]' : 'text-slate-900'}`}>{pendingWithdrawalsCount}</h3>
+            {pendingWithdrawalsCount > 0 ? (
+              <span className="text-[11px] text-red-650 bg-red-150/40 px-2 py-0.5 rounded-full font-bold mt-1.5 inline-flex items-center gap-0.5 animate-pulse">
+                Action Required
+              </span>
+            ) : (
+              <span className="text-[11px] text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full font-semibold mt-1.5 inline-flex items-center">
+                Ledger clear
+              </span>
+            )}
+          </div>
+        </motion.div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -223,13 +262,18 @@ export default function DashboardHome({
               </div>
 
               <div className="flex items-center justify-between pb-3 border-b border-[#EEF1F8]">
-                <span className="text-xs text-slate-600 font-medium text-danger">Cashback Given</span>
-                <span className="text-sm font-semibold font-mono text-danger">- {formatNaira(stats.total_cashback_given)}</span>
+                <span className="text-xs text-slate-600 font-medium text-[#EF4444]">Total Cashback Given</span>
+                <span className="text-sm font-semibold font-mono text-[#EF4444]">- {formatNaira(stats.total_cashback_given)}</span>
+              </div>
+
+              <div className="flex items-center justify-between pb-3 border-b border-[#EEF1F8]">
+                <span className="text-xs text-slate-600 font-medium text-amber-600">Pending Withdrawals</span>
+                <span className="text-sm font-semibold font-mono text-amber-600">- {formatNaira(pendingWithdrawalsSum)}</span>
               </div>
 
               <div className="flex items-center justify-between pt-2">
-                <span className="text-base font-bold text-success">Net Total</span>
-                <span className="text-base font-bold font-mono text-success">{formatNaira(stats.net_revenue)}</span>
+                <span className="text-base font-bold text-success">Net Total (Profits)</span>
+                <span className="text-base font-bold font-mono text-success">{formatNaira(stats.net_revenue - pendingWithdrawalsSum)}</span>
               </div>
             </div>
           </div>

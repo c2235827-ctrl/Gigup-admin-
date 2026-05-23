@@ -10,20 +10,22 @@ import {
   X, 
   Cpu, 
   ShieldCheck, 
-  Database 
+  Database,
+  Coins
 } from 'lucide-react';
 import { getMockMode } from '../services/api';
 
-export type ActiveTab = 'dashboard' | 'orders' | 'users' | 'plans' | 'settings';
+export type ActiveTab = 'dashboard' | 'orders' | 'withdrawals' | 'users' | 'plans' | 'settings';
 
 interface SidebarProps {
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
   pendingOrdersCount: number;
+  pendingWithdrawalsCount: number;
   onLogout: () => void;
 }
 
-export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, onLogout }: SidebarProps) {
+export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, pendingWithdrawalsCount, onLogout }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const isDemo = getMockMode();
 
@@ -36,6 +38,13 @@ export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, o
       label: 'Orders', 
       icon: ShoppingBag, 
       badge: pendingOrdersCount > 0 ? pendingOrdersCount : undefined 
+    },
+    { 
+      id: 'withdrawals' as ActiveTab, 
+      label: 'Withdrawals', 
+      icon: Coins, 
+      badge: pendingWithdrawalsCount > 0 ? pendingWithdrawalsCount : undefined,
+      badgeColor: 'bg-red-500 text-white font-bold'
     },
     { id: 'users' as ActiveTab, label: 'Users', icon: Users },
     { id: 'plans' as ActiveTab, label: 'Plans', icon: Radio },
@@ -130,7 +139,9 @@ export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, o
                   <span>{item.label}</span>
                 </div>
                 {item.badge !== undefined && (
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center animate-pulse ${isActive ? 'bg-primary-blue text-white' : 'bg-primary-blue text-white'}`}>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center animate-pulse ${
+                    item.badgeColor || 'bg-primary-blue text-white'
+                  }`}>
                     {item.badge}
                   </span>
                 )}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { fetchStats, fetchUsers, fetchOrders, getMockMode, setMockMode } from './services/api';
+import { fetchStats, fetchUsers, fetchOrders, fetchWithdrawals, getMockMode, setMockMode } from './services/api';
 import { Stats, Order, User, DashboardData } from './types';
 
 // Importing Views & Overlays
@@ -12,6 +12,7 @@ import OrdersView from './components/OrdersView';
 import UsersView from './components/UsersView';
 import PlansView from './components/PlansView';
 import SettingsView from './components/SettingsView';
+import WithdrawalsView from './components/WithdrawalsView';
 import OrderDetailModal from './components/OrderDetailModal';
 
 export default function App() {
@@ -31,6 +32,10 @@ export default function App() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [recentUsers, setRecentUsers] = useState<User[]>([]);
+
+  // Withdrawals states
+  const [pendingWithdrawalsCount, setPendingWithdrawalsCount] = useState<number>(0);
+  const [pendingWithdrawalsSum, setPendingWithdrawalsSum] = useState<number>(0);
   
   // Loader trackers
   const [isLoadingStats, setIsLoadingStats] = useState(false);
@@ -77,10 +82,18 @@ export default function App() {
     else setIsRefreshingStats(true);
 
     try {
-      const dashboardData = await fetchStats(adminSecret);
+      const [dashboardData, withdrawalsRes] = await Promise.all([
+        fetchStats(adminSecret),
+        fetchWithdrawals(adminSecret, 'pending')
+      ]);
       setStats(dashboardData.stats);
       setRecentOrders(dashboardData.recent_orders);
       setRecentUsers(dashboardData.recent_users);
+      if (withdrawalsRes.success) {
+        setPendingWithdrawalsCount(withdrawalsRes.withdrawals.length);
+        const sum = withdrawalsRes.withdrawals.reduce((acc, curr) => acc + curr.amount, 0);
+        setPendingWithdrawalsSum(sum);
+      }
     } catch (err: any) {
       if (err.message === 'Unauthorized') {
         // Clear stale session
@@ -151,6 +164,7 @@ export default function App() {
           }
         }}
         pendingOrdersCount={stats?.pending_orders || 0}
+        pendingWithdrawalsCount={pendingWithdrawalsCount}
         onLogout={handleLogout}
       />
 
@@ -182,8 +196,11 @@ export default function App() {
                   stats={stats}
                   recentOrders={recentOrders}
                   recentUsers={recentUsers}
+                  pendingWithdrawalsCount={pendingWithdrawalsCount}
+                  pendingWithdrawalsSum={pendingWithdrawalsSum}
                   onNavigateToOrders={handleNavigateToOrders}
                   onNavigateToUsers={handleNavigateToUsers}
+                  onNavigateToWithdrawals={() => setActiveTab('withdrawals')}
                   onSelectOrder={setSelectedOrder}
                   onRefresh={() => fetchDashboardStats(true)}
                   isRefreshing={isRefreshingStats}
@@ -197,6 +214,14 @@ export default function App() {
                   addToast={addToast}
                   onRefreshStats={() => fetchDashboardStats(true)}
                   onSelectOrder={setSelectedOrder}
+                />
+              )}
+
+              {activeTab === 'withdrawals' && (
+                <WithdrawalsView
+                  adminSecret={adminSecret}
+                  addToast={addToast}
+                  onProcessed={() => fetchDashboardStats(true)}
                 />
               )}
 
