@@ -1,0 +1,6 @@
+{
+  "name": "GigUp Admin Dashboard",
+  "description": "Administrative panel for the GigUp VTU platform to monitor stats, manage users, orders, plans, and update system settings.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

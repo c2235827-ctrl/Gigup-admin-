@@ -1,0 +1,459 @@
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+  Search, 
+  UserPlus, 
+  Wallet, 
+  Award, 
+  Calendar, 
+  ChevronLeft, 
+  ChevronRight, 
+  Copy, 
+  Check, 
+  X, 
+  Phone,
+  Hash,
+  ShoppingBag,
+  ExternalLink,
+  ShieldCheck
+} from 'lucide-react';
+import { User, Order } from '../types';
+import { fetchUsers, fetchOrders } from '../services/api';
+import { formatNaira, formatDateTime, formatDateOnly, getInitials } from '../utils/formatters';
+
+interface UsersViewProps {
+  adminSecret: string;
+  addToast: (type: 'success' | 'error' | 'warning' | 'info', message: string) => void;
+}
+
+export default function UsersView({ adminSecret, addToast }: UsersViewProps) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const [users, setUsers] = useState<User[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [limitPerPage] = useState(15);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Selected User Modal Detail State
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userOrders, setUserOrders] = useState<Order[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+
+  const loadUsers = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetchUsers(adminSecret, currentPage, limitPerPage, searchQuery);
+      setUsers(response.users || []);
+      if (response.pagination) {
+        setTotalPages(response.pagination.pages || 1);
+        setTotalItems(response.pagination.total || 0);
+      }
+    } catch (err: any) {
+      addToast('error', err.message || 'Error occurred loading the users list.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadUsers();
+  }, [currentPage, searchQuery]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearchQuery(searchTerm.trim());
+    setCurrentPage(1);
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    setSearchQuery('');
+    setCurrentPage(1);
+  };
+
+  // Open detailing modal and request their history
+  const handleOpenDetailModal = async (user: User) => {
+    setSelectedUser(user);
+    setIsLoadingOrders(true);
+    try {
+      // Query past orders related to this user by phone search
+      const res = await fetchOrders(adminSecret, 1, 5, 'all', 'all', user.phone);
+      setUserOrders(res.orders || []);
+    } catch (err) {
+      console.error('Failed to load selected user orders list:', err);
+      setUserOrders([]);
+    } finally {
+      setIsLoadingOrders(false);
+    }
+  };
+
+  const handleCopyReferral = (code: string) => {
+    if (!code) return;
+    navigator.clipboard.writeText(code);
+    setCopiedCode(true);
+    addToast('success', 'Referral code copied to clipboard');
+    setTimeout(() => setCopiedCode(false), 2000);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* SECTION HEADER */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          VTU Client Management
+        </h1>
+        <p className="text-sm text-text-muted mt-1">
+          Explore registered user profiles, verify active ledger wallet balances, and audit referral streams.
+        </p>
+      </div>
+
+      {/* SEARCH BAR BAR */}
+      <div className="bg-white p-4 rounded-xl border border-slate-105 shadow-geometric flex flex-col sm:flex-row items-center gap-4">
+        <form onSubmit={handleSearchSubmit} className="w-full flex-1 flex gap-2">
+          <div className="relative flex-1 rounded-xl shadow-xs">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+              <Search className="w-4 h-4" />
+            </div>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by full name, phone state, or referral code..."
+              className="w-full pl-9 pr-3 py-2.5 text-sm bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-450 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-blue/15 focus:border-primary-blue transition-all"
+            />
+          </div>
+          <button
+            type="submit"
+            className="px-5 py-2.5 bg-primary-blue hover:bg-blue-600 text-white text-xs font-semibold rounded-xl shadow-md shadow-primary-blue/10 transition-all cursor-pointer flex items-center justify-center shrink-0"
+          >
+            Search
+          </button>
+          {(searchTerm || searchQuery) && (
+            <button
+              type="button"
+              onClick={handleClearSearch}
+              className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-all cursor-pointer shrink-0"
+            >
+              Clear
+            </button>
+          )}
+        </form>
+      </div>
+
+      {/* DATA BOX TABLE */}
+      <div className="bg-white rounded-xl border border-slate-105 shadow-geometric overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-[#FAFBFF] border-b border-[#EEF1F8] text-[12px] font-semibold text-slate-500 uppercase tracking-wider">
+                <th className="px-6 py-4"># Profile</th>
+                <th className="px-6 py-4">Name & Bio</th>
+                <th className="px-6 py-4">Phone State</th>
+                <th className="px-6 py-4 text-right">Wallet Balance</th>
+                <th className="px-6 py-4">Referral Code</th>
+                <th className="px-6 py-4 text-center">Orders Count</th>
+                <th className="px-6 py-4 text-center">Signup Bonus</th>
+                <th className="px-6 py-4">Registration</th>
+                <th className="px-6 py-4 text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#EEF1F8] text-xs">
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, idx) => (
+                  <tr key={idx} className="animate-pulse">
+                    <td className="px-6 py-4"><div className="w-8 h-8 rounded-full bg-slate-100" /></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-28" /></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-24" /></td>
+                    <td className="px-6 py-4 text-right"><div className="h-4 bg-slate-100 rounded w-16 ml-auto" /></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-14" /></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-8 mx-auto" /></td>
+                    <td className="px-6 py-4"><div className="h-5 bg-slate-100 rounded-full w-16 mx-auto" /></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-20" /></td>
+                    <td className="px-6 py-4"><div className="h-7 bg-slate-100 rounded-lg w-16 mx-auto" /></td>
+                  </tr>
+                ))
+              ) : users.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="px-6 py-12 text-center text-slate-400">
+                    No active clients matched your search query. Try typing another term.
+                  </td>
+                </tr>
+              ) : (
+                users.map((user, idx) => (
+                  <tr key={user.id} className="hover:bg-slate-50/30 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-700 select-none">
+                        {getInitials(user.full_name)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 font-semibold text-slate-900">
+                      {user.full_name}
+                    </td>
+                    <td className="px-6 py-4 font-mono font-medium text-slate-600">
+                      {user.phone}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <span className="text-sm font-bold text-success font-mono">
+                        {formatNaira(user.wallet_balance)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {user.referral_code ? (
+                        <span className="inline-flex items-center gap-1 font-mono font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[11px]">
+                          {user.referral_code}
+                        </span>
+                      ) : (
+                        <span className="text-slate-350">—</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-center font-semibold font-mono text-slate-800">
+                      {user.total_orders || 0}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        user.signup_bonus_claimed 
+                          ? 'bg-[#DCFCE7] text-[#22C55E]' 
+                          : 'bg-[#FEF3C7] text-[#F59E0B]'
+                      }`}>
+                        {user.signup_bonus_claimed ? 'Claimed' : 'Pending'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-slate-500 whitespace-nowrap">
+                      {formatDateOnly(user.created_at)}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <button
+                        onClick={() => handleOpenDetailModal(user)}
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-semibold text-[11px] rounded-lg transition-all cursor-pointer shadow-xs active:translate-y-[0.5px]"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                        <span>View</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* PAGINATION CONTROL ROW */}
+        {totalPages > 1 && (
+          <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+            <span className="text-xs text-slate-500 font-medium">
+              Showing page <strong className="text-slate-900 font-semibold">{currentPage}</strong> of <strong className="text-slate-900 font-semibold">{totalPages}</strong> ({totalItems} records total)
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1 || isLoading}
+                className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 disabled:opacity-50 transition-all cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              
+              {Array.from({ length: totalPages }).map((_, idx) => {
+                const pageNum = idx + 1;
+                if (totalPages > 6 && Math.abs(pageNum - currentPage) > 2 && pageNum !== 1 && pageNum !== totalPages) {
+                  return pageNum === 2 || pageNum === totalPages - 1 ? (
+                    <span key={pageNum} className="text-xs text-slate-450 px-1 font-semibold select-none">...</span>
+                  ) : null;
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    type="button"
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                      currentPage === pageNum 
+                        ? 'bg-primary-blue text-white shadow-xs' 
+                        : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages || isLoading}
+                className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 disabled:opacity-50 transition-all cursor-pointer"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ANIME PRESENCE MODAL FOR DETAILS */}
+      <AnimatePresence>
+        {selectedUser && (
+          <div id="user-modal-overlay" className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* BLACKOUT BACKSTAGE */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedUser(null)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-xs"
+            />
+
+            {/* MODAL SHEET */}
+            <motion.div
+              initial={{ scale: 0.95, y: 15, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1, transition: { type: 'spring', duration: 0.3 } }}
+              exit={{ scale: 0.95, y: 15, opacity: 0 }}
+              className="bg-white rounded-2xl border border-slate-100 shadow-2xl max-w-2xl w-full z-10 overflow-hidden relative"
+            >
+              {/* HEADER TITLE */}
+              <div className="bg-primary-dark text-white p-6 flex justify-between items-start">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center font-bold text-white text-base select-none border border-white/20">
+                    {getInitials(selectedUser.full_name)}
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold tracking-tight">{selectedUser.full_name}</h2>
+                    <p className="text-xs text-slate-330 mt-1 font-mono">{selectedUser.phone}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedUser(null)}
+                  className="p-1 text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-all cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* CORE CARD DETAILS */}
+              <div className="p-6 space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* BALANCE */}
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                      Ledger Balance
+                    </span>
+                    <span className="text-lg font-bold text-success font-mono">{formatNaira(selectedUser.wallet_balance)}</span>
+                  </div>
+
+                  {/* REF CODE */}
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
+                    <div>
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                        Referral Code
+                      </span>
+                      <span className="text-sm font-semibold text-slate-800 font-mono">
+                        {selectedUser.referral_code || '---'}
+                      </span>
+                    </div>
+                    {selectedUser.referral_code && (
+                      <button
+                        onClick={() => handleCopyReferral(selectedUser.referral_code)}
+                        className="mt-2 text-[10px] font-semibold text-primary-blue hover:text-blue-600 flex items-center gap-1 cursor-pointer"
+                      >
+                        {copiedCode ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
+                        <span>{copiedCode ? 'Copied' : 'Copy referral'}</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* JOINED TIMESTAMP */}
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                      Member Since
+                    </span>
+                    <span className="text-xs font-semibold text-slate-800 font-mono block">
+                      {formatDateOnly(selectedUser.created_at)}
+                    </span>
+                    <span className="text-[10px] text-slate-400 block mt-1">
+                      Total Orders count: <strong className="text-slate-800 font-semibold font-mono">{selectedUser.total_orders || 0}</strong>
+                    </span>
+                  </div>
+                </div>
+
+                {/* PAST HISTORY ROW */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    Recent Five Transactions
+                  </h4>
+                  <div className="rounded-xl border border-slate-100 overflow-hidden bg-white shadow-xs">
+                    {isLoadingOrders ? (
+                      <div className="py-8 text-center flex items-center justify-center gap-2">
+                        <svg className="animate-spin h-4 w-4 text-primary-blue" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        <span className="text-xs text-slate-400 font-medium">Looking up transaction logs...</span>
+                      </div>
+                    ) : userOrders.length === 0 ? (
+                      <div className="py-8 text-center text-xs text-slate-400">
+                        This client hasn't placed any VTU orders.
+                      </div>
+                    ) : (
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-slate-50/70 border-b border-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                            <th className="px-4 py-2">recipient</th>
+                            <th className="px-4 py-2">Plan Details</th>
+                            <th className="px-4 py-2 text-right">cost</th>
+                            <th className="px-4 py-2">status</th>
+                            <th className="px-4 py-2">date</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                          {userOrders.map((ord) => (
+                            <tr key={ord.id}>
+                              <td className="px-4 py-2.5 font-mono text-slate-700">{ord.recipient_phone}</td>
+                              <td className="px-4 py-2.5">
+                                <span className={`inline-flex items-center text-[8px] font-bold px-1 rounded mr-1 ${
+                                  ord.network === 'MTN' ? 'bg-amber-100 text-amber-600' :
+                                  ord.network === 'GLO' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'
+                                }`}>
+                                  {ord.network}
+                                </span>
+                                <span className="font-semibold text-slate-800">{ord.plan_name}</span>
+                              </td>
+                              <td className="px-4 py-2.5 text-right font-semibold font-mono text-slate-900">{formatNaira(ord.amount)}</td>
+                              <td className="px-4 py-2.5">
+                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${
+                                  ord.status === 'success' ? 'bg-green-100 text-success' :
+                                  ord.status === 'failed' ? 'bg-red-100 text-danger' : 'bg-purple-100 text-pending'
+                                }`}>
+                                  {ord.status}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2.5 text-slate-450 font-mono text-[10px] whitespace-nowrap">{formatDateTime(ord.created_at)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* FOOTER ACTIONS */}
+              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setSelectedUser(null)}
+                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                >
+                  Close Profile
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
