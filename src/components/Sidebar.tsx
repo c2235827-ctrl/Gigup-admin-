@@ -8,12 +8,10 @@ import {
   LogOut, 
   Menu, 
   X, 
-  Cpu, 
   ShieldCheck, 
   Database,
   Coins
 } from 'lucide-react';
-import { getMockMode } from '../services/api';
 
 export type ActiveTab = 'dashboard' | 'orders' | 'withdrawals' | 'users' | 'plans' | 'settings';
 
@@ -27,7 +25,6 @@ interface SidebarProps {
 
 export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, pendingWithdrawalsCount, onLogout }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const isDemo = getMockMode();
 
   const toggleSidebar = () => setIsOpen(!isOpen);
 
@@ -63,11 +60,6 @@ export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, p
         <div className="flex items-center gap-2">
           <Database className="w-6 h-6 text-primary-blue" />
           <span className="text-white font-bold tracking-tight text-lg">GigUp Admin</span>
-          {isDemo && (
-            <span className="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px] px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wider flex items-center gap-0.5">
-              <Cpu className="w-2.5 h-2.5 animate-pulse" /> Sandbox
-            </span>
-          )}
         </div>
         <button 
           onClick={toggleSidebar}
@@ -107,17 +99,6 @@ export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, p
             </p>
           </div>
         </div>
-
-        {/* DEMO NOTICE BADGE */}
-        {isDemo && (
-          <div className="mx-4 mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 flex gap-2 items-center">
-            <Cpu className="w-4 h-4 text-amber-400 animate-pulse shrink-0" />
-            <div className="text-[11px] font-medium text-amber-305">
-              Mock Integration Active
-              <span className="block text-[9px] text-amber-400 font-normal mt-0.5">Offline-safe simulation</span>
-            </div>
-          </div>
-        )}
 
         {/* MAIN NAVIGATION ITEMS */}
         <nav className="flex-1 py-6 space-y-0.5 overflow-y-auto">

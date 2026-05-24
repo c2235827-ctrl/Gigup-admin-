@@ -156,7 +156,14 @@ export default function PlansView({ adminSecret, addToast }: PlansViewProps) {
     }
   };
 
-  const filteredPlans = plans.filter(p => p.network.toUpperCase() === activeTab.toUpperCase());
+  const matchNetwork = (planNet: string | undefined | null, tabNet: string): boolean => {
+    if (!planNet) return false;
+    const a = planNet.trim().toUpperCase();
+    const b = tabNet.trim().toUpperCase();
+    return a === b || a.startsWith(b) || b.startsWith(a);
+  };
+
+  const filteredPlans = plans.filter(p => matchNetwork(p.network, activeTab));
 
   return (
     <div className="space-y-6">
@@ -184,10 +191,10 @@ export default function PlansView({ adminSecret, addToast }: PlansViewProps) {
       </div>
 
       {/* FILTER OPERATOR TABS */}
-      <div className="flex border-b border-slate-200">
+      <div className="flex border-b border-slate-200 overflow-x-auto no-scrollbar">
         {(['MTN', 'GLO', 'AIRTEL'] as const).map((net) => {
           const isActive = activeTab === net;
-          const count = plans.filter(p => p.network.toUpperCase() === net.toUpperCase()).length;
+          const count = plans.filter(p => matchNetwork(p.network, net)).length;
           return (
             <button
               key={net}

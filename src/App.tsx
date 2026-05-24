@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { fetchStats, fetchUsers, fetchOrders, fetchWithdrawals, getMockMode, setMockMode } from './services/api';
+import { fetchStats, fetchUsers, fetchOrders, fetchWithdrawals } from './services/api';
 import { Stats, Order, User, DashboardData } from './types';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 
 // Importing Views & Overlays
 import LoginView from './components/LoginView';
@@ -16,6 +17,11 @@ import WithdrawalsView from './components/WithdrawalsView';
 import OrderDetailModal from './components/OrderDetailModal';
 
 export default function App() {
+  // Clear any leftover mock/sandbox localStorage from development
+  useEffect(() => {
+    localStorage.removeItem('gigup_admin_mock_mode');
+  }, []);
+
   // Session Authentication State
   const [adminSecret, setAdminSecret] = useState<string | null>(() => {
     return sessionStorage.getItem('gigup_admin_secret');
@@ -84,15 +90,24 @@ export default function App() {
     try {
       const [dashboardData, withdrawalsRes] = await Promise.all([
         fetchStats(adminSecret),
-        fetchWithdrawals(adminSecret, 'pending')
+        fetchWithdrawals(adminSecret, 'pending').catch(err => {
+          console.error('Graceful fallback for pending withdrawals load failure:', err);
+          return { success: false, withdrawals: [] };
+        })
       ]);
       setStats(dashboardData.stats);
       setRecentOrders(dashboardData.recent_orders);
       setRecentUsers(dashboardData.recent_users);
-      if (withdrawalsRes.success) {
+      if (withdrawalsRes && withdrawalsRes.success && withdrawalsRes.withdrawals) {
         setPendingWithdrawalsCount(withdrawalsRes.withdrawals.length);
-        const sum = withdrawalsRes.withdrawals.reduce((acc, curr) => acc + curr.amount, 0);
+        let sum = 0;
+        for (const w of withdrawalsRes.withdrawals) {
+          sum += w.amount;
+        }
         setPendingWithdrawalsSum(sum);
+      } else {
+        setPendingWithdrawalsCount(0);
+        setPendingWithdrawalsSum(0);
       }
     } catch (err: any) {
       if (err.message === 'Unauthorized') {
@@ -205,6 +220,28 @@ export default function App() {
                   onRefresh={() => fetchDashboardStats(true)}
                   isRefreshing={isRefreshingStats}
                 />
+              )}
+
+              {activeTab === 'dashboard' && !stats && (
+                <div className="flex flex-col items-center justify-center min-h-[50vh] p-6 text-center max-w-md mx-auto space-y-5">
+                  <div className="w-14 h-14 bg-red-105 text-red-600 rounded-xl flex items-center justify-center shadow-sm">
+                    <AlertCircle className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900 tracking-tight">Console Sync Standby</h2>
+                    <p className="text-slate-500 mt-2 text-sm leading-relaxed">
+                      We couldn't reach the live operational API database to sync real-time administrator metrics.
+                    </p>
+                  </div>
+                  <div className="flex justify-center pt-2 w-full">
+                    <button
+                      onClick={() => fetchDashboardStats(false)}
+                      className="inline-flex items-center justify-center px-5 py-2.5 bg-primary-blue hover:bg-blue-600 text-white font-semibold rounded-xl text-sm shadow-md transition-all focus:outline-none cursor-pointer"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin-hover" /> Retry Connection
+                    </button>
+                  </div>
+                </div>
               )}
 
               {activeTab === 'orders' && (
