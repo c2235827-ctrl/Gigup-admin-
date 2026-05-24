@@ -13,6 +13,15 @@ import {
   AlertCircle,
   Coins
 } from 'lucide-react';
+import { 
+  ResponsiveContainer, 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip 
+} from 'recharts';
 import { Stats, Order, User } from '../types';
 import { formatNaira, formatDateTime, getInitials } from '../utils/formatters';
 
@@ -29,6 +38,51 @@ interface DashboardHomeProps {
   onRefresh: () => void;
   isRefreshing: boolean;
 }
+
+const getLast7DaysData = (orders: Order[]) => {
+  const result = [];
+  const now = new Date();
+  
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(now.getDate() - i);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const date = String(d.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${date}`;
+    
+    result.push({
+      dateStr,
+      dayName: d.toLocaleDateString(undefined, { weekday: 'short' }),
+      dateLabel: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+      count: 0,
+      volume: 0
+    });
+  }
+
+  if (Array.isArray(orders)) {
+    orders.forEach((o) => {
+      if (!o || !o.created_at) return;
+      try {
+        const d = new Date(o.created_at);
+        const oYear = d.getFullYear();
+        const oMonth = String(d.getMonth() + 1).padStart(2, '0');
+        const oDate = String(d.getDate()).padStart(2, '0');
+        const oDateStr = `${oYear}-${oMonth}-${oDate}`;
+
+        const match = result.find(r => r.dateStr === oDateStr);
+        if (match) {
+          match.count += 1;
+          match.volume += Number(o.amount) || 0;
+        }
+      } catch (e) {
+        // Safe catch for date parsing
+      }
+    });
+  }
+
+  return result;
+};
 
 export default function DashboardHome({
   stats,
@@ -327,6 +381,97 @@ export default function DashboardHome({
           </div>
         </motion.div>
       </div>
+
+      {/* 7-DAY ORDER COUNT TREND LINE CHART */}
+      <motion.div 
+        variants={cardVariants}
+        className="bg-white rounded-xl border border-slate-105 shadow-geometric p-6"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-1.5">
+              <TrendingUp className="w-4 h-4 text-primary-blue animate-pulse" />
+              7-Day Platform Activity Trend
+            </h3>
+            <p className="text-xs text-text-muted mt-0.5">
+              Daily order velocity tracking aggregated from platform queue.
+            </p>
+          </div>
+          <div className="flex items-center gap-4 text-xs font-mono">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-primary-blue bg-opacity-80 inline-block" />
+              <span className="text-slate-500 font-medium">Order Count</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+              <span className="text-slate-500 font-medium">Total Volume</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="h-64 sm:h-72 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart 
+              data={getLast7DaysData(recentOrders)} 
+              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3B7EF8" stopOpacity={0.2}/>
+                  <stop offset="95%" stopColor="#3B7EF8" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+              <XAxis 
+                dataKey="dateLabel" 
+                stroke="#94A3B8" 
+                fontSize={11}
+                tickLine={false}
+                axisLine={false}
+                dy={10}
+              />
+              <YAxis 
+                stroke="#94A3B8" 
+                fontSize={11}
+                tickLine={false}
+                axisLine={false}
+                allowDecimals={false}
+              />
+              <Tooltip 
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <div className="bg-[#0D1F3D] text-white p-3 rounded-lg shadow-xl border border-[#3B7EF8]/20 text-xs font-sans space-y-1.5">
+                        <p className="font-semibold text-slate-300">{data.dayName}, {data.dateLabel}</p>
+                        <hr className="border-slate-800 my-1" />
+                        <div className="flex justify-between gap-6">
+                          <span className="text-slate-400">Orders:</span>
+                          <span className="font-bold text-white font-mono">{data.count}</span>
+                        </div>
+                        <div className="flex justify-between gap-6">
+                          <span className="text-slate-400">Volume:</span>
+                          <span className="font-bold text-emerald-400 font-mono">₦{data.volume.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Area 
+                type="monotone" 
+                dataKey="count" 
+                stroke="#3B7EF8" 
+                strokeWidth={2.5}
+                fillOpacity={1} 
+                fill="url(#colorCount)" 
+                activeDot={{ r: 6, stroke: '#FFFFFF', strokeWidth: 2 }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </motion.div>
 
       {/* RECENT FEED GRIDS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

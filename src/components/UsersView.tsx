@@ -43,11 +43,75 @@ export default function UsersView({ adminSecret, addToast }: UsersViewProps) {
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
 
+  // Robust function to resolve the correct order count from potential Supabase returns
+  const resolveOrderCount = (u: any): number => {
+    if (!u) return 0;
+
+    const parseVal = (val: any): number | null => {
+      if (typeof val === 'number') return val;
+      if (typeof val === 'string') {
+        const parsed = parseInt(val, 10);
+        return isNaN(parsed) ? null : parsed;
+      }
+      return null;
+    };
+
+    // 1. Check direct keys representing order counts (e.g. from backend/database)
+    const directKeys = [
+      'total_orders', 'totalOrders', 
+      'orders_count', 'ordersCount', 
+      'order_count', 'orderCount', 
+      'orders_total', 'ordersTotal'
+    ];
+    for (const key of directKeys) {
+      const parsed = parseVal(u[key]);
+      if (parsed !== null) return parsed;
+    }
+
+    // 2. Check "orders" field as direct count value or array or nested object
+    if (u.orders !== undefined && u.orders !== null) {
+      const directOrdersVal = parseVal(u.orders);
+      if (directOrdersVal !== null) return directOrdersVal;
+
+      if (Array.isArray(u.orders)) {
+        if (u.orders.length > 0 && u.orders[0]) {
+          const nestedCount = parseVal(u.orders[0].count);
+          if (nestedCount !== null) return nestedCount;
+        }
+        return u.orders.length;
+      }
+
+      if (typeof u.orders === 'object') {
+        const nestedCount = parseVal(u.orders.count);
+        if (nestedCount !== null) return nestedCount;
+        
+        if (u.orders.aggregate) {
+          const aggCount = parseVal(u.orders.aggregate.count);
+          if (aggCount !== null) return aggCount;
+        }
+      }
+    }
+
+    // 3. Check "_count" nested structure commonly returned by Prisma or other ORMs
+    if (u._count && typeof u._count === 'object') {
+      const countOrders = parseVal(u._count.orders);
+      if (countOrders !== null) return countOrders;
+
+      const countOrder = parseVal(u._count.order);
+      if (countOrder !== null) return countOrder;
+    }
+
+    return 0;
+  };
+
   const loadUsers = async () => {
     setIsLoading(true);
     try {
       const response = await fetchUsers(adminSecret, currentPage, limitPerPage, searchQuery);
       setUsers(response.users || []);
+      if (response.users && response.users.length > 0) {
+        console.log('DEBUG: First user payload in list:', response.users[0]);
+      }
       if (response.pagination) {
         setTotalPages(response.pagination.pages || 1);
         setTotalItems(response.pagination.total || 0);
@@ -211,7 +275,7 @@ export default function UsersView({ adminSecret, addToast }: UsersViewProps) {
                       )}
                     </td>
                     <td className="px-6 py-4 text-center font-semibold font-mono text-slate-800">
-                      {user.total_orders || 0}
+                      {resolveOrderCount(user)}
                     </td>
                     <td className="px-6 py-4 text-center">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
@@ -374,7 +438,7 @@ export default function UsersView({ adminSecret, addToast }: UsersViewProps) {
                       {formatDateOnly(selectedUser.created_at)}
                     </span>
                     <span className="text-[10px] text-slate-400 block mt-1">
-                      Total Orders count: <strong className="text-slate-800 font-semibold font-mono">{selectedUser.total_orders || 0}</strong>
+                      Total Orders count: <strong className="text-slate-800 font-semibold font-mono">{resolveOrderCount(selectedUser)}</strong>
                     </span>
                   </div>
                 </div>
