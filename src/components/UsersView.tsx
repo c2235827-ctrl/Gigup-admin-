@@ -214,15 +214,16 @@ export default function UsersView({ adminSecret, addToast }: UsersViewProps) {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[#FAFBFF] border-b border-[#EEF1F8] text-[12px] font-semibold text-slate-500 uppercase tracking-wider">
-                <th className="px-6 py-4"># Profile</th>
-                <th className="px-6 py-4">Name & Bio</th>
-                <th className="px-6 py-4">Phone State</th>
-                <th className="px-6 py-4 text-right">Wallet Balance</th>
-                <th className="px-6 py-4">Referral Code</th>
-                <th className="px-6 py-4 text-center">Orders Count</th>
-                <th className="px-6 py-4 text-center">Signup Bonus</th>
-                <th className="px-6 py-4">Registration</th>
-                <th className="px-6 py-4 text-center">Actions</th>
+                <th className="px-6 py-4">#</th>
+                <th className="px-6 py-4">Name</th>
+                <th className="px-6 py-4">Phone</th>
+                <th className="px-6 py-4 text-right">Wallet</th>
+                <th className="px-6 py-4 text-right">Cashback</th>
+                <th className="px-6 py-4 text-center">Orders</th>
+                <th className="px-6 py-4 text-right">Spent</th>
+                <th className="px-6 py-4 text-center">Bonus</th>
+                <th className="px-6 py-4">Joined</th>
+                <th className="px-6 py-4 text-center">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#EEF1F8] text-xs">
@@ -233,8 +234,9 @@ export default function UsersView({ adminSecret, addToast }: UsersViewProps) {
                     <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-28" /></td>
                     <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-24" /></td>
                     <td className="px-6 py-4 text-right"><div className="h-4 bg-slate-100 rounded w-16 ml-auto" /></td>
-                    <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-14" /></td>
+                    <td className="px-6 py-4 text-right"><div className="h-4 bg-slate-100 rounded w-16 ml-auto" /></td>
                     <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-8 mx-auto" /></td>
+                    <td className="px-6 py-4 text-right"><div className="h-4 bg-slate-100 rounded w-16 ml-auto" /></td>
                     <td className="px-6 py-4"><div className="h-5 bg-slate-100 rounded-full w-16 mx-auto" /></td>
                     <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-20" /></td>
                     <td className="px-6 py-4"><div className="h-7 bg-slate-100 rounded-lg w-16 mx-auto" /></td>
@@ -242,7 +244,7 @@ export default function UsersView({ adminSecret, addToast }: UsersViewProps) {
                 ))
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={10} className="px-6 py-12 text-center text-slate-400">
                     No active clients matched your search query. Try typing another term.
                   </td>
                 </tr>
@@ -265,17 +267,16 @@ export default function UsersView({ adminSecret, addToast }: UsersViewProps) {
                         {formatNaira(user.wallet_balance)}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
-                      {user.referral_code ? (
-                        <span className="inline-flex items-center gap-1 font-mono font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[11px]">
-                          {user.referral_code}
-                        </span>
-                      ) : (
-                        <span className="text-slate-350">—</span>
-                      )}
+                    <td className="px-6 py-4 text-right">
+                      <span className="text-sm font-bold text-amber-500 font-mono">
+                        {formatNaira(user.cashback_balance || 0)}
+                      </span>
                     </td>
-                    <td className="px-6 py-4 text-center font-semibold font-mono text-slate-800">
-                      {resolveOrderCount(user)}
+                    <td className="px-6 py-4 text-center font-bold font-mono text-emerald-600">
+                      {user.successful_orders ?? 0}/{user.total_orders ?? resolveOrderCount(user)}
+                    </td>
+                    <td className="px-6 py-4 text-right font-bold font-mono text-slate-805">
+                      {formatNaira(user.total_spent || 0)}
                     </td>
                     <td className="px-6 py-4 text-center">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
@@ -438,7 +439,43 @@ export default function UsersView({ adminSecret, addToast }: UsersViewProps) {
                       {formatDateOnly(selectedUser.created_at)}
                     </span>
                     <span className="text-[10px] text-slate-400 block mt-1">
-                      Total Orders count: <strong className="text-slate-800 font-semibold font-mono">{resolveOrderCount(selectedUser)}</strong>
+                      Daily statistics updated
+                    </span>
+                  </div>
+                </div>
+
+                {/* ADDITIONAL ACCOUNT PURCHASE STATS */}
+                <div className="p-4 rounded-xl bg-[#FAFBFF] border border-slate-205 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div>
+                    <span className="block text-[10px] font-bold text-slate-450 uppercase tracking-wider mb-1">
+                      Total Orders Placed:
+                    </span>
+                    <span className="text-sm font-bold text-slate-800 font-mono">
+                      {selectedUser.total_orders ?? resolveOrderCount(selectedUser)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-bold text-slate-450 uppercase tracking-wider mb-1">
+                      Successful Orders:
+                    </span>
+                    <span className="text-sm font-bold text-emerald-600 font-mono">
+                      {selectedUser.successful_orders ?? 0}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-bold text-slate-450 uppercase tracking-wider mb-1">
+                      Total Amount Spent:
+                    </span>
+                    <span className="text-sm font-bold text-slate-900 font-mono">
+                      {formatNaira(selectedUser.total_spent || 0)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-bold text-slate-450 uppercase tracking-wider mb-1">
+                      Cashback Balance:
+                    </span>
+                    <span className="text-sm font-bold text-amber-600 font-mono">
+                      {formatNaira(selectedUser.cashback_balance || 0)}
                     </span>
                   </div>
                 </div>

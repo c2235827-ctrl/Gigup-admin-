@@ -32,7 +32,16 @@ export interface User {
   referral_code: string;
   signup_bonus_claimed: boolean;
   total_orders: number;
+  successful_orders?: number;
+  total_spent?: number;
+  cashback_balance?: number;
   created_at: string;
+}
+
+export interface GatewayStatus {
+  flw_mode: 'test' | 'live';
+  flw_secret_key_preview: string;
+  is_configured: boolean;
 }
 
 export interface Plan {

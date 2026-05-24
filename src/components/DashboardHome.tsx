@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   Users, 
@@ -11,7 +12,8 @@ import {
   Wallet,
   Calendar,
   AlertCircle,
-  Coins
+  Coins,
+  Gift
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -98,6 +100,22 @@ export default function DashboardHome({
   isRefreshing
 }: DashboardHomeProps) {
 
+  // Auto-refresh seconds counter tracker
+  const [secondsAgo, setSecondsAgo] = useState(0);
+
+  useEffect(() => {
+    setSecondsAgo(0);
+    const interval = setInterval(() => {
+      setSecondsAgo((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [stats]);
+
+  // Extract top spenders sorted by total_spent descending
+  const topSpenders = [...recentUsers]
+    .sort((a, b) => (b.total_spent || 0) - (a.total_spent || 0))
+    .slice(0, 4);
+
   // Calculate percentages for network breakdown
   const ordersByNetwork = stats.orders_by_network || {};
   const totalNetworkOrders = Object.values(ordersByNetwork).reduce((a, b) => a + b, 0) || 1;
@@ -163,18 +181,23 @@ export default function DashboardHome({
           </p>
         </div>
 
-        <button
-          onClick={onRefresh}
-          disabled={isRefreshing}
-          className="self-start sm:self-auto inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-medium text-xs rounded-xl shadow-sm hover:shadow-md transition-all active:translate-y-[0.5px] cursor-pointer shrink-0"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isRefreshing ? 'animate-spin text-primary-blue' : ''}`} />
-          <span>{isRefreshing ? 'Refreshing Overview...' : 'Force Refresh (60s Auto)'}</span>
-        </button>
+        <div className="flex flex-col sm:items-end gap-1 shrink-0">
+          <button
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            className="self-start sm:self-auto inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-medium text-xs rounded-xl shadow-sm hover:shadow-md transition-all active:translate-y-[0.5px] cursor-pointer shrink-0"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isRefreshing ? 'animate-spin text-primary-blue' : ''}`} />
+            <span>{isRefreshing ? 'Refreshing Overview...' : 'Force Refresh'}</span>
+          </button>
+          <span className="text-[10px] sm:text-[11px] font-mono font-bold text-slate-500">
+            Last updated: {secondsAgo === 0 ? 'just now' : `${secondsAgo} seconds ago`}
+          </span>
+        </div>
       </div>
 
       {/* STAT CARDS ROW */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {/* TOTAL USERS */}
         <motion.div 
           variants={cardVariants}
@@ -230,6 +253,25 @@ export default function DashboardHome({
             <h3 className="text-2xl font-bold font-mono text-slate-900">{formatNaira(stats.net_revenue)}</h3>
             <span className="text-[11px] text-success bg-green-50 px-2 py-0.5 rounded-full font-semibold mt-1.5 inline-flex items-center gap-0.5">
               Active
+            </span>
+          </div>
+        </motion.div>
+
+        {/* TOTAL CASHBACK GIVEN */}
+        <motion.div 
+          variants={cardVariants}
+          className="bg-white p-5 rounded-xl border border-slate-105 shadow-geometric flex flex-col justify-between group hover:shadow-geometric-lg hover:border-slate-300 transition-all h-40"
+        >
+          <div className="flex justify-between items-start">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total Cashback Given</span>
+            <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center shrink-0">
+              <Gift className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="mt-2">
+            <h3 className="text-2xl font-bold font-mono text-slate-900">{formatNaira(stats.total_cashback_given || 0)}</h3>
+            <span className="text-[11px] text-amber-650 bg-amber-50 px-2 py-0.5 rounded-full font-bold mt-1.5 inline-flex items-center gap-0.5">
+              Promo rewards pool
             </span>
           </div>
         </motion.div>
@@ -345,13 +387,24 @@ export default function DashboardHome({
           variants={cardVariants}
           className="bg-white rounded-xl border border-slate-105 shadow-geometric p-6 lg:col-span-2"
         >
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <h3 className="text-sm font-bold text-slate-900 tracking-tight">
               Orders by Network
             </h3>
-            <span className="text-[11px] text-slate-400 font-semibold font-mono">
-              Count: {totalNetworkOrders}
-            </span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full font-bold">
+                MTN: {ordersByNetwork.MTN || 0}
+              </span>
+              <span className="text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded-full font-bold">
+                GLO: {ordersByNetwork.GLO || 0}
+              </span>
+              <span className="text-[10px] bg-rose-50 text-rose-600 border border-rose-200 px-2 py-0.5 rounded-full font-bold font-sans">
+                Airtel: {ordersByNetwork.AIRTEL || 0}
+              </span>
+              <span className="text-[10px] bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-full font-bold font-mono">
+                Total: {totalNetworkOrders}
+              </span>
+            </div>
           </div>
 
           <div className="space-y-6">
@@ -602,6 +655,53 @@ export default function DashboardHome({
                 </div>
               ))
             )}
+          </div>
+
+          {/* TOP SPENDERS SECTION */}
+          <div className="space-y-4 pt-4 border-t border-slate-100">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-1.5">
+                <Award className="w-4 h-4 text-amber-500" />
+                <span>Top Spenders</span>
+              </h3>
+              <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                Heavy Users
+              </span>
+            </div>
+
+            <div className="bg-white rounded-xl border border-slate-105 shadow-geometric p-4 divide-y divide-slate-100">
+              {topSpenders.length === 0 ? (
+                <div className="py-8 text-center text-xs text-slate-400">
+                  No spenders statistics recorded yet.
+                </div>
+              ) : (
+                topSpenders.map((user) => (
+                  <div key={`spender-${user.id}`} className="py-3 flex items-center justify-between first:pt-0 last:pb-0">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center font-bold text-amber-700 text-xs shrink-0 select-none border border-amber-100">
+                        {getInitials(user.full_name)}
+                      </div>
+                      <div>
+                        <strong className="text-xs font-semibold text-slate-800 block">
+                          {user.full_name}
+                        </strong>
+                        <span className="text-[10px] font-mono text-slate-405 block mt-0.5">
+                          {user.phone}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-extrabold text-slate-900 font-mono block">
+                        {formatNaira(user.total_spent || 0)}
+                      </span>
+                      <span className="text-[9px] text-[#22C55E] font-bold mt-0.5 block">
+                        {user.successful_orders ?? 0} orders
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </div>

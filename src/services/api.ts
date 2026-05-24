@@ -1,4 +1,4 @@
-import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal } from '../types';
+import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus } from '../types';
 
 const BASE_URL = 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
 
@@ -182,6 +182,35 @@ export async function processWithdrawal(
   if (!res.ok) {
     if (res.status === 401) throw new Error('Unauthorized');
     throw new Error('Failed to process withdrawal');
+  }
+  return await res.json();
+}
+
+export async function fetchGatewayStatus(secret: string): Promise<{ success: boolean; gateway: GatewayStatus }> {
+  const res = await fetch(`${BASE_URL}/admin-manage?section=gateway`, { headers: getHeaders(secret) });
+  if (!res.ok) {
+    if (res.status === 401) throw new Error('Unauthorized');
+    throw new Error('Failed to load gateway status');
+  }
+  return await res.json();
+}
+
+export async function updateGateway(
+  secret: string,
+  data: {
+    flw_secret_key: string;
+    flw_public_key: string;
+    flw_mode: 'test' | 'live';
+  }
+): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${BASE_URL}/admin-manage`, {
+    method: 'POST',
+    headers: getHeaders(secret),
+    body: JSON.stringify({ action: 'update_gateway', ...data })
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new Error('Unauthorized');
+    throw new Error('Failed to update gateway settings');
   }
   return await res.json();
 }
