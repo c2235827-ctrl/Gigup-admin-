@@ -45,8 +45,13 @@ export default function LoginView({ onLoginSuccess, addToast }: LoginViewProps) 
 
       <div className="w-full max-w-md z-10">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-primary-blue/15 text-primary-blue mb-4 ring-1 ring-primary-blue/30">
-            <ShieldCheck className="w-9 h-9" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-white mb-4 shadow-sm ring-1 ring-slate-205 p-2">
+            <img 
+              src="https://cdn-icons-png.flaticon.com/512/15106/15106527.png" 
+              alt="Hummingbird Icon" 
+              className="w-12 h-12 object-contain" 
+              referrerPolicy="no-referrer" 
+            />
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-white">GigUp Admin</h1>
           <p className="text-sm text-slate-400 mt-2">Operations & Management Dashboard</p>

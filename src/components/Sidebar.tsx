@@ -58,7 +58,12 @@ export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, p
       {/* MOBILE TOP NAVIGATION BAR */}
       <header className="lg:hidden h-16 bg-primary-dark w-full px-4 flex items-center justify-between z-30 fixed top-0 left-0 border-b border-white/5">
         <div className="flex items-center gap-2">
-          <Database className="w-6 h-6 text-primary-blue" />
+          <img 
+            src="https://cdn-icons-png.flaticon.com/512/15106/15106527.png" 
+            alt="Hummingbird Icon" 
+            className="w-6 h-6 object-contain" 
+            referrerPolicy="no-referrer" 
+          />
           <span className="text-white font-bold tracking-tight text-lg">GigUp Admin</span>
         </div>
         <button 
@@ -87,8 +92,13 @@ export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, p
       >
         {/* SIDEBAR HEADER */}
         <div className="h-20 flex items-center px-6 border-b border-white/5 gap-3 shrink-0">
-          <div className="w-8 h-8 items-center justify-center flex rounded-md bg-primary-blue font-bold text-white text-base">
-            G
+          <div className="w-8 h-8 items-center justify-center flex rounded-md bg-transparent">
+            <img 
+              src="https://cdn-icons-png.flaticon.com/512/15106/15106527.png" 
+              alt="Hummingbird Icon" 
+              className="w-8 h-8 object-contain" 
+              referrerPolicy="no-referrer" 
+            />
           </div>
           <div>
             <h2 className="font-bold tracking-tight text-white font-sans text-base leading-none">
