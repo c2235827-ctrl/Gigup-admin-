@@ -18,7 +18,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { User, Order } from '../types';
-import { fetchUsers, fetchOrders } from '../services/api';
+import { fetchUsers, fetchOrders, resendSignupBonus, manualWalletCredit } from '../services/api';
 import { formatNaira, formatDateTime, formatDateOnly, getInitials } from '../utils/formatters';
 
 interface UsersViewProps {
@@ -137,6 +137,47 @@ export default function UsersView({ adminSecret, addToast }: UsersViewProps) {
     setSearchTerm('');
     setSearchQuery('');
     setCurrentPage(1);
+  };
+
+  const [resendingBonus, setResendingBonus] = useState<string | null>(null);
+
+  const handleResendBonus = async (userId: string, userName: string) => {
+    if (!confirm(`Resend welcome data bonus to ${userName}?`)) return;
+    setResendingBonus(userId);
+    try {
+      const result = await resendSignupBonus(adminSecret, userId);
+      if (result.success && result.status === 'sent') {
+        addToast('success', result.message || `✅ Bonus sent to ${userName}`);
+      } else {
+        addToast('error', result.message || '❌ Failed — check SMEDATA balance');
+      }
+      await loadUsers(); // refresh list
+      setSelectedUser(prev => prev && prev.id === userId ? { ...prev, signup_bonus_claimed: true } : prev);
+    } catch (err: any) {
+      addToast('error', err.message || 'Failed to resend bonus');
+    } finally {
+      setResendingBonus(null);
+    }
+  };
+
+  const handleManualCredit = async (userId: string, userName: string) => {
+    const amountStr = prompt(`Enter amount to credit to ${userName}'s wallet (₦):`);
+    if (!amountStr) return;
+    const amount = parseFloat(amountStr);
+    if (isNaN(amount) || amount <= 0) {
+      addToast('error', 'Invalid amount');
+      return;
+    }
+    const reference = prompt('Enter payment reference (optional):') || `manual-${Date.now()}`;
+    if (!confirm(`Credit ₦${amount.toLocaleString()} to ${userName}?`)) return;
+    try {
+      await manualWalletCredit(adminSecret, userId, amount, reference);
+      addToast('success', `✅ ₦${amount.toLocaleString()} credited to ${userName}`);
+      await loadUsers();
+      setSelectedUser(prev => prev && prev.id === userId ? { ...prev, wallet_balance: prev.wallet_balance + amount } : prev);
+    } catch (err: any) {
+      addToast('error', err.message || 'Failed to credit wallet');
+    }
   };
 
   // Open detailing modal and request their history
@@ -538,6 +579,54 @@ export default function UsersView({ adminSecret, addToast }: UsersViewProps) {
                       </table>
                     )}
                   </div>
+                </div>
+
+                {/* Resend Bonus Button */}
+                <div style={{
+                  marginTop: '16px',
+                  paddingTop: '16px',
+                  borderTop: '1px solid #F3F4F6'
+                }}>
+                  <p style={{ fontSize: '12px', color: '#8A96A3', marginBottom: '8px' }}>
+                    Signup Bonus: {selectedUser.signup_bonus_claimed ? '✅ Claimed' : '⏳ Pending'}
+                  </p>
+                  <button
+                    onClick={() => handleResendBonus(selectedUser.id, selectedUser.full_name)}
+                    disabled={resendingBonus === selectedUser.id}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      background: resendingBonus === selectedUser.id ? '#E5E7EB' : '#0D1F3D',
+                      color: resendingBonus === selectedUser.id ? '#9CA3AF' : 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: resendingBonus === selectedUser.id ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    {resendingBonus === selectedUser.id ? '⏳ Sending...' : '🎁 Resend Welcome Bonus'}
+                  </button>
+                </div>
+
+                {/* Manual Wallet Credit */}
+                <div style={{ marginTop: '12px' }}>
+                  <button
+                    onClick={() => handleManualCredit(selectedUser.id, selectedUser.full_name)}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      background: 'transparent',
+                      color: '#22C55E',
+                      border: '1.5px solid #22C55E',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    💰 Manual Wallet Credit
+                  </button>
                 </div>
               </div>
 

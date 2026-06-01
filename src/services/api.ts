@@ -214,3 +214,50 @@ export async function updateGateway(
   }
   return await res.json();
 }
+
+export async function resendSignupBonus(
+  secret: string,
+  userId: string
+): Promise<{ success: boolean; message: string; status: string }> {
+  const res = await fetch(`${BASE_URL}/admin-resend-bonus`, {
+    method: 'POST',
+    headers: getHeaders(secret),
+    body: JSON.stringify({ user_id: userId })
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new Error('Unauthorized');
+    throw new Error('Failed to resend bonus');
+  }
+  return await res.json();
+}
+
+export async function manualWalletCredit(
+  secret: string,
+  userId: string,
+  amount: number,
+  reference: string
+): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${BASE_URL}/admin-manage`, {
+    method: 'POST',
+    headers: getHeaders(secret),
+    body: JSON.stringify({
+      action: 'manual_credit',
+      user_id: userId,
+      amount,
+      reference
+    })
+  });
+  if (!res.ok) throw new Error('Failed to credit wallet');
+  return await res.json();
+}
+
+export async function fetchPendingPayments(
+  secret: string
+): Promise<{ success: boolean; pending: any[] }> {
+  const res = await fetch(`${BASE_URL}/admin-manage?section=pending_payments`, {
+    headers: getHeaders(secret)
+  });
+  if (!res.ok) throw new Error('Failed to load pending payments');
+  return await res.json();
+}
+

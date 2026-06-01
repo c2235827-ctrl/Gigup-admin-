@@ -17,11 +17,6 @@ import WithdrawalsView from './components/WithdrawalsView';
 import OrderDetailModal from './components/OrderDetailModal';
 
 export default function App() {
-  // Clear any leftover mock/sandbox localStorage from development
-  useEffect(() => {
-    localStorage.removeItem('gigup_admin_mock_mode');
-  }, []);
-
   // Session Authentication State
   const [adminSecret, setAdminSecret] = useState<string | null>(() => {
     return sessionStorage.getItem('gigup_admin_secret');

@@ -16,7 +16,7 @@ import {
   XCircle
 } from 'lucide-react';
 import { Order } from '../types';
-import { fetchOrders, requeryOrder } from '../services/api';
+import { fetchOrders, requeryOrder, fetchPendingPayments, manualWalletCredit } from '../services/api';
 import { formatNaira, formatDateTime } from '../utils/formatters';
 
 interface OrdersViewProps {
@@ -51,6 +51,61 @@ export default function OrdersView({
   const [totalItems, setTotalItems] = useState(0);
   const [limitPerPage] = useState(15);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Tab control to switch between VTU orders and Pending Flutterwave payments
+  const [activeTabMode, setActiveTabMode] = useState<'vtu' | 'pending_payments'>('vtu');
+
+  // Pending Payments states
+  const [pendingPayments, setPendingPayments] = useState<any[]>([]);
+  const [isLoadingPending, setIsLoadingPending] = useState(false);
+  const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
+
+  const loadPendingPayments = async () => {
+    setIsLoadingPending(true);
+    try {
+      const response = await fetchPendingPayments(adminSecret);
+      if (response.success) {
+        setPendingPayments(response.pending || []);
+      } else {
+        addToast('error', 'Failed to retrieve pending payments');
+      }
+    } catch (err: any) {
+      addToast('error', err.message || 'Error occurred fetching pending payments.');
+    } finally {
+      setIsLoadingPending(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTabMode === 'pending_payments') {
+      loadPendingPayments();
+    }
+  }, [activeTabMode]);
+
+  const handleMarkPaid = async (payment: any) => {
+    const userId = payment.user_id;
+    const userName = payment.users?.full_name || 'this client';
+    const amount = payment.amount;
+    const ref = payment.tx_ref;
+
+    if (!confirm(`Mark payment of ₦${amount.toLocaleString()} as PAID and manually credit ${userName}'s wallet?`)) return;
+
+    setMarkingPaidId(payment.id);
+    try {
+      const result = await manualWalletCredit(adminSecret, userId, amount, ref);
+      if (result.success) {
+        addToast('success', `✅ Wallet credited with ₦${amount.toLocaleString()} for ${userName}`);
+        loadPendingPayments();
+        onRefreshStats();
+      } else {
+        addToast('error', result.message || 'Failed to complete credit');
+      }
+    } catch (err: any) {
+      addToast('error', err.message || 'Error processing manual credit.');
+    } finally {
+      setMarkingPaidId(null);
+    }
+  };
 
   // Requery individual tracking
   const [requeryingRefs, setRequeryingRefs] = useState<Record<string, boolean>>({});
@@ -156,7 +211,122 @@ export default function OrdersView({
         </p>
       </div>
 
-      {/* FILTER BAR FORM */}
+      {/* TABS SWITCHER */}
+      <div className="flex border-b border-slate-200">
+        <button
+          onClick={() => setActiveTabMode('vtu')}
+          className={`px-5 py-3 border-b-2 font-bold text-sm transition-all focus:outline-none cursor-pointer ${
+            activeTabMode === 'vtu'
+              ? 'border-primary-blue text-primary-blue'
+              : 'border-transparent text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          VTU Transactions
+        </button>
+        <button
+          onClick={() => setActiveTabMode('pending_payments')}
+          className={`px-5 py-3 border-b-2 font-bold text-sm transition-all focus:outline-none cursor-pointer flex items-center gap-1.5 ${
+            activeTabMode === 'pending_payments'
+              ? 'border-primary-blue text-primary-blue'
+              : 'border-transparent text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          <span>Pending Payments</span>
+          {pendingPayments.length > 0 && (
+            <span className="inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-extrabold bg-amber-500 text-white rounded-full animate-pulse">
+              {pendingPayments.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {activeTabMode === 'pending_payments' ? (
+        <div className="bg-white rounded-xl border border-slate-105 shadow-geometric overflow-hidden">
+          <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-700">Pending Flutterwave Payments</span>
+            <button
+              onClick={loadPendingPayments}
+              disabled={isLoadingPending}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-lg text-xs font-semibold cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingPending ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-[#FAFBFF] border-b border-[#EEF1F8] text-[12px] font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-4">User</th>
+                  <th className="px-6 py-4">Phone</th>
+                  <th className="px-6 py-4 text-right">Amount</th>
+                  <th className="px-6 py-4 font-mono">tx_ref</th>
+                  <th className="px-6 py-4">Date</th>
+                  <th className="px-6 py-4 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#EEF1F8] text-xs">
+                {isLoadingPending ? (
+                  Array.from({ length: 3 }).map((_, idx) => (
+                    <tr key={idx} className="animate-pulse">
+                      <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-24" /></td>
+                      <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-20" /></td>
+                      <td className="px-6 py-4 text-right"><div className="h-4 bg-slate-100 rounded w-16 ml-auto" /></td>
+                      <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-28" /></td>
+                      <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-24" /></td>
+                      <td className="px-6 py-4"><div className="h-7 bg-slate-100 rounded-lg w-20 mx-auto" /></td>
+                    </tr>
+                  ))
+                ) : pendingPayments.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                      No pending flutterwave transactions found.
+                    </td>
+                  </tr>
+                ) : (
+                  pendingPayments.map((payment) => {
+                    const user = payment.users;
+                    const isProcessing = markingPaidId === payment.id;
+                    return (
+                      <tr key={payment.id} className="hover:bg-slate-50/40 transition-colors">
+                        <td className="px-6 py-4">
+                          <span className="font-semibold text-slate-900 block">
+                            {user?.full_name || 'Anonymous'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="font-mono text-slate-650">{user?.phone || '—'}</span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <span className="font-bold text-amber-500 font-mono text-sm">{formatNaira(payment.amount)}</span>
+                        </td>
+                        <td className="px-6 py-4 font-mono text-slate-600 font-medium">
+                          {payment.tx_ref}
+                        </td>
+                        <td className="px-6 py-4 text-slate-500 font-mono text-[11px]">
+                          {formatDateTime(payment.created_at)}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <button
+                            onClick={() => handleMarkPaid(payment)}
+                            disabled={isProcessing}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 hover:text-emerald-800 disabled:opacity-50 text-[11px] font-semibold rounded-lg transition-all cursor-pointer shadow-xs active:translate-y-[0.5px]"
+                          >
+                            {isProcessing ? '⏳ Saving...' : '✅ Mark Paid'}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* FILTER BAR FORM */}
       <div className="bg-white p-5 rounded-xl border border-slate-105 shadow-geometric">
         <form onSubmit={handleApplyFilters} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
           {/* RECIPIENT PHONE SEARCH */}
@@ -413,6 +583,8 @@ export default function OrdersView({
           </div>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 }
