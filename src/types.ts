@@ -10,6 +10,7 @@ export interface Stats {
 
 export interface Order {
   id: string;
+  user_id: string;
   recipient_phone: string;
   network: string;
   plan_name: string;

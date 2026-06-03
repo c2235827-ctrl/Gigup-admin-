@@ -127,6 +127,16 @@ export default function UsersView({ adminSecret, addToast }: UsersViewProps) {
     loadUsers();
   }, [currentPage, searchQuery]);
 
+  // Real-time automatic search debounce to look up speedier
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      setSearchQuery(searchTerm.trim());
+      setCurrentPage(1);
+    }, 400);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm]);
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSearchQuery(searchTerm.trim());
@@ -227,7 +237,7 @@ export default function UsersView({ adminSecret, addToast }: UsersViewProps) {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by full name, phone state, or referral code..."
+              placeholder="Search by name or phone number..."
               className="w-full pl-9 pr-3 py-2.5 text-sm bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-450 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-blue/15 focus:border-primary-blue transition-all"
             />
           </div>

@@ -11,10 +11,11 @@ import {
   FileText,
   Bookmark,
   Calendar,
-  AlertOctagon
+  AlertOctagon,
+  Gift
 } from 'lucide-react';
 import { Order } from '../types';
-import { requeryOrder } from '../services/api';
+import { requeryOrder, resendSignupBonus } from '../services/api';
 import { formatNaira, formatDateTime } from '../utils/formatters';
 
 interface OrderDetailModalProps {
@@ -33,12 +34,30 @@ export default function OrderDetailModal({
   onRefreshAll
 }: OrderDetailModalProps) {
   const [isRequerying, setIsRequerying] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   if (!order) return null;
 
+  const handleResendBonus = async () => {
+    if (!confirm(`Resend 1GB welcome data bonus to ${order.recipient_phone}?`)) return;
+    setIsResending(true);
+    try {
+      const result = await resendSignupBonus(adminSecret, order.user_id);
+      addToast(result.success ? 'success' : 'error', result.message);
+      if (result.success) {
+        onRefreshAll();
+        onClose();
+      }
+    } catch (err: any) {
+      addToast('error', err.message || 'Failed to resend bonus');
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   const handleRequery = async () => {
     if (!order.smedata_ref) {
-      addToast('error', 'Missing SMEDATA refer_ref for query.');
+      addToast('error', 'No SMEDATA reference found. Use "Resend Bonus" for bonus orders or contact support for paid orders.');
       return;
     }
 
@@ -177,7 +196,24 @@ export default function OrderDetailModal({
 
           {/* BOTTOM BUTTON BAR */}
           <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center grow-0">
-            {order.status === 'pending' ? (
+            {order.amount === 0 && (order.status === 'pending' || order.status === 'failed' || !order.smedata_ref) ? (
+              <button
+                type="button"
+                onClick={handleResendBonus}
+                disabled={isResending}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-75 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer active:translate-y-[0.5px]"
+              >
+                {isResending ? (
+                  <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                ) : (
+                  <Gift className="w-4 h-4" />
+                )}
+                <span>Resend Signup Bonus</span>
+              </button>
+            ) : order.status === 'pending' ? (
               <button
                 type="button"
                 onClick={handleRequery}

@@ -31,9 +31,10 @@ interface DashboardHomeProps {
   stats: Stats;
   recentOrders: Order[];
   recentUsers: User[];
+  pendingBonuses?: Order[];
   pendingWithdrawalsCount: number;
   pendingWithdrawalsSum: number;
-  onNavigateToOrders: (filterPending: boolean) => void;
+  onNavigateToOrders: (filterPending: boolean, filterBonusPending?: boolean) => void;
   onNavigateToUsers: () => void;
   onNavigateToWithdrawals: () => void;
   onSelectOrder: (order: Order) => void;
@@ -90,6 +91,7 @@ export default function DashboardHome({
   stats,
   recentOrders,
   recentUsers,
+  pendingBonuses = [],
   pendingWithdrawalsCount,
   pendingWithdrawalsSum,
   onNavigateToOrders,
@@ -197,7 +199,7 @@ export default function DashboardHome({
       </div>
 
       {/* STAT CARDS ROW */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-4">
         {/* TOTAL USERS */}
         <motion.div 
           variants={cardVariants}
@@ -335,6 +337,38 @@ export default function DashboardHome({
             ) : (
               <span className="text-[11px] text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full font-semibold mt-1.5 inline-flex items-center">
                 Ledger clear
+              </span>
+            )}
+          </div>
+        </motion.div>
+
+        {/* PENDING BONUSES */}
+        <motion.div 
+          variants={cardVariants}
+          onClick={() => onNavigateToOrders(false, true)}
+          className={`p-5 rounded-xl border shadow-geometric flex flex-col justify-between cursor-pointer transition-all h-40 ${
+            pendingBonuses.length > 0 
+              ? 'bg-amber-50/70 border-warning/40 hover:bg-amber-55 hover:border-warning hover:shadow-geometric-lg' 
+              : 'bg-white border-slate-105 hover:border-slate-300 hover:shadow-geometric-lg'
+          }`}
+        >
+          <div className="flex justify-between items-start">
+            <span className={`text-[11px] font-bold uppercase tracking-wider ${pendingBonuses.length > 0 ? 'text-warning' : 'text-slate-500'}`}>Pending Bonuses</span>
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+              pendingBonuses.length > 0 ? 'bg-amber-100 text-warning' : 'bg-slate-105 text-slate-500'
+            }`}>
+              <Gift className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="mt-2">
+            <h3 className={`text-2xl font-bold font-mono ${pendingBonuses.length > 0 ? 'text-warning font-extrabold' : 'text-slate-900'}`}>{pendingBonuses.length}</h3>
+            {pendingBonuses.length > 0 ? (
+              <span className="text-[11px] text-warning bg-amber-150/40 px-2 py-0.5 rounded-full font-bold mt-1.5 inline-flex items-center gap-0.5">
+                {pendingBonuses.length} bonus orders pending
+              </span>
+            ) : (
+              <span className="text-[11px] text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full font-semibold mt-1.5 inline-flex items-center">
+                System clear
               </span>
             )}
           </div>

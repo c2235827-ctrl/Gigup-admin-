@@ -64,7 +64,7 @@ export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, p
             className="w-6 h-6 object-contain" 
             referrerPolicy="no-referrer" 
           />
-          <span className="text-white font-bold tracking-tight text-lg">GigUp Admin</span>
+          <span className="text-white font-bold tracking-tight text-lg">GigUp Nigeria Admin</span>
         </div>
         <button 
           onClick={toggleSidebar}
@@ -102,7 +102,7 @@ export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, p
           </div>
           <div>
             <h2 className="font-bold tracking-tight text-white font-sans text-base leading-none">
-              GigUp Admin
+              GigUp Nigeria Admin
             </h2>
             <p className="text-[10px] text-text-muted mt-1 leading-none">
               Control Panel v2.0.4

@@ -53,7 +53,7 @@ export default function LoginView({ onLoginSuccess, addToast }: LoginViewProps) 
               referrerPolicy="no-referrer" 
             />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">GigUp Admin</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-white">GigUp Nigeria Admin</h1>
           <p className="text-sm text-slate-400 mt-2">Operations & Management Dashboard</p>
         </div>
 

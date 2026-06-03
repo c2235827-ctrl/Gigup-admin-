@@ -28,11 +28,13 @@ export default function App() {
   // Navigation and screen tab trackers
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [initialPendingFilterActive, setInitialPendingFilterActive] = useState(false);
+  const [initialBonusPendingFilterActive, setInitialBonusPendingFilterActive] = useState(false);
 
   // Core administrative states
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [recentUsers, setRecentUsers] = useState<User[]>([]);
+  const [pendingBonuses, setPendingBonuses] = useState<Order[]>([]);
 
   // Withdrawals states
   const [pendingWithdrawalsCount, setPendingWithdrawalsCount] = useState<number>(0);
@@ -83,16 +85,27 @@ export default function App() {
     else setIsRefreshingStats(true);
 
     try {
-      const [dashboardData, withdrawalsRes] = await Promise.all([
+      const [dashboardData, withdrawalsRes, pendingBonusesRes] = await Promise.all([
         fetchStats(adminSecret),
         fetchWithdrawals(adminSecret, 'pending').catch(err => {
           console.error('Graceful fallback for pending withdrawals load failure:', err);
           return { success: false, withdrawals: [] };
+        }),
+        fetchOrders(adminSecret, 1, 50, 'pending', 'all', '', true).catch(err => {
+          console.error('Graceful fallback for pending bonus orders load failure:', err);
+          return { success: false, orders: [] };
         })
       ]);
       setStats(dashboardData.stats);
       setRecentOrders(dashboardData.recent_orders);
       setRecentUsers(dashboardData.recent_users);
+      
+      if (pendingBonusesRes && pendingBonusesRes.orders) {
+        setPendingBonuses(pendingBonusesRes.orders);
+      } else {
+        setPendingBonuses([]);
+      }
+
       if (withdrawalsRes && withdrawalsRes.success && withdrawalsRes.withdrawals) {
         setPendingWithdrawalsCount(withdrawalsRes.withdrawals.length);
         let sum = 0;
@@ -141,8 +154,9 @@ export default function App() {
   }, [adminSecret]);
 
   // Handle routing commands between metrics cards and sheets
-  const handleNavigateToOrders = (filterPending: boolean) => {
+  const handleNavigateToOrders = (filterPending: boolean, filterBonusPending = false) => {
     setInitialPendingFilterActive(filterPending);
+    setInitialBonusPendingFilterActive(filterBonusPending);
     setActiveTab('orders');
   };
 
@@ -171,6 +185,7 @@ export default function App() {
           // If moving to orders, make sure to reset initial filters
           if (tab !== 'orders') {
             setInitialPendingFilterActive(false);
+            setInitialBonusPendingFilterActive(false);
           }
         }}
         pendingOrdersCount={stats?.pending_orders || 0}
@@ -206,6 +221,7 @@ export default function App() {
                   stats={stats}
                   recentOrders={recentOrders}
                   recentUsers={recentUsers}
+                  pendingBonuses={pendingBonuses}
                   pendingWithdrawalsCount={pendingWithdrawalsCount}
                   pendingWithdrawalsSum={pendingWithdrawalsSum}
                   onNavigateToOrders={handleNavigateToOrders}
@@ -243,6 +259,7 @@ export default function App() {
                 <OrdersView
                   adminSecret={adminSecret}
                   initialPendingFilter={initialPendingFilterActive}
+                  initialBonusPendingFilter={initialBonusPendingFilterActive}
                   addToast={addToast}
                   onRefreshStats={() => fetchDashboardStats(true)}
                   onSelectOrder={setSelectedOrder}

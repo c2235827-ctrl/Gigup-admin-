@@ -16,12 +16,13 @@ import {
   XCircle
 } from 'lucide-react';
 import { Order } from '../types';
-import { fetchOrders, requeryOrder, fetchPendingPayments, manualWalletCredit } from '../services/api';
+import { fetchOrders, requeryOrder, fetchPendingPayments, manualWalletCredit, resendSignupBonus } from '../services/api';
 import { formatNaira, formatDateTime } from '../utils/formatters';
 
 interface OrdersViewProps {
   adminSecret: string;
   initialPendingFilter: boolean;
+  initialBonusPendingFilter?: boolean;
   addToast: (type: 'success' | 'error' | 'warning' | 'info', message: string) => void;
   onRefreshStats: () => void;
   onSelectOrder: (order: Order) => void;
@@ -30,19 +31,21 @@ interface OrdersViewProps {
 export default function OrdersView({
   adminSecret,
   initialPendingFilter,
+  initialBonusPendingFilter = false,
   addToast,
   onRefreshStats,
   onSelectOrder
 }: OrdersViewProps) {
   // Filters state
   const [phoneSearch, setPhoneSearch] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState(initialPendingFilter ? 'pending' : 'all');
+  const [selectedStatus, setSelectedStatus] = useState(initialPendingFilter || initialBonusPendingFilter ? 'pending' : 'all');
   const [selectedNetwork, setSelectedNetwork] = useState('all');
 
   // Query triggers
   const [searchQuery, setSearchQuery] = useState('');
-  const [queryStatus, setQueryStatus] = useState(initialPendingFilter ? 'pending' : 'all');
+  const [queryStatus, setQueryStatus] = useState(initialPendingFilter || initialBonusPendingFilter ? 'pending' : 'all');
   const [queryNetwork, setQueryNetwork] = useState('all');
+  const [isBonusOnly, setIsBonusOnly] = useState(initialBonusPendingFilter);
 
   // List & pagination
   const [orders, setOrders] = useState<Order[]>([]);
@@ -115,9 +118,15 @@ export default function OrdersView({
     if (initialPendingFilter) {
       setSelectedStatus('pending');
       setQueryStatus('pending');
+      setIsBonusOnly(false);
+      setCurrentPage(1);
+    } else if (initialBonusPendingFilter) {
+      setSelectedStatus('pending');
+      setQueryStatus('pending');
+      setIsBonusOnly(true);
       setCurrentPage(1);
     }
-  }, [initialPendingFilter]);
+  }, [initialPendingFilter, initialBonusPendingFilter]);
 
   // Load orders when queries change
   const loadOrders = async () => {
@@ -129,7 +138,8 @@ export default function OrdersView({
         limitPerPage,
         queryStatus,
         queryNetwork,
-        searchQuery
+        searchQuery,
+        isBonusOnly
       );
       setOrders(result.orders || []);
       if (result.pagination) {
@@ -145,7 +155,7 @@ export default function OrdersView({
 
   useEffect(() => {
     loadOrders();
-  }, [currentPage, queryStatus, queryNetwork, searchQuery]);
+  }, [currentPage, queryStatus, queryNetwork, searchQuery, isBonusOnly]);
 
   const handleApplyFilters = (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,13 +172,14 @@ export default function OrdersView({
     setQueryStatus('all');
     setSelectedNetwork('all');
     setQueryNetwork('all');
+    setIsBonusOnly(false);
     setCurrentPage(1);
   };
 
   const handleRequery = async (e: React.MouseEvent, order: Order) => {
     e.stopPropagation(); // Avoid opening the row detail modal
     if (!order.smedata_ref) {
-      addToast('error', 'Missing SMEDATA refer_ref for query.');
+      addToast('error', 'No SMEDATA reference found. Use "Resend Bonus" for bonus orders or contact support for paid orders.');
       return;
     }
 
@@ -196,6 +207,18 @@ export default function OrdersView({
       addToast('error', err.message || `Requery transaction call failed.`);
     } finally {
       setRequeryingRefs(prev => ({ ...prev, [ref]: false }));
+    }
+  };
+
+  const handleResendBonusFromOrder = async (e: React.MouseEvent, order: Order) => {
+    e.stopPropagation();
+    if (!confirm(`Resend 1GB welcome data bonus to ${order.recipient_phone}?`)) return;
+    try {
+      const result = await resendSignupBonus(adminSecret, order.user_id);
+      addToast(result.success ? 'success' : 'error', result.message);
+      loadOrders();
+    } catch (err: any) {
+      addToast('error', err.message || 'Failed to resend bonus');
     }
   };
 
@@ -390,7 +413,7 @@ export default function OrdersView({
             >
               Filter Rows
             </button>
-            {(phoneSearch || selectedStatus !== 'all' || selectedNetwork !== 'all') && (
+            {(phoneSearch || selectedStatus !== 'all' || selectedNetwork !== 'all' || isBonusOnly) && (
               <button
                 type="button"
                 onClick={handleClearFilters}
@@ -477,9 +500,20 @@ export default function OrdersView({
                           {order.network}
                         </span>
                         <span className="font-medium text-slate-900">{order.plan_name}</span>
+                        {order.amount === 0 && (
+                          <span style={{
+                            background: '#F0FDF4', color: '#22C55E',
+                            fontSize: '10px', padding: '1px 5px',
+                            borderRadius: '4px', marginLeft: '4px'
+                          }}>🎁 BONUS</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-right font-semibold font-mono text-slate-800">
-                        {formatNaira(order.amount)}
+                        {order.amount === 0 ? (
+                          <span style={{ color: '#22C55E', fontWeight: 700 }}>FREE</span>
+                        ) : (
+                          <span>₦{Number(order.amount).toLocaleString()}</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-right font-mono text-slate-500">
                         {order.cashback_amount > 0 ? (
@@ -495,31 +529,66 @@ export default function OrdersView({
                         </span>
                       </td>
                       <td className="px-6 py-4 font-mono font-medium text-slate-650">
-                        {order.smedata_ref}
+                        {order.smedata_ref || '—'}
                       </td>
                       <td className="px-6 py-4 text-slate-550 whitespace-nowrap">
                         {formatDateTime(order.created_at)}
                       </td>
                       <td className="px-6 py-4 text-center">
-                        {order.status === 'pending' ? (
-                          <button
-                            onClick={(e) => handleRequery(e, order)}
-                            disabled={isRequerying}
-                            className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-100 hover:bg-amber-200 text-warning disabled:opacity-70 font-semibold text-[11px] rounded-lg transition-all cursor-pointer shadow-xs active:translate-y-[0.5px]"
-                          >
-                            {isRequerying ? (
-                              <svg className="animate-spin h-3.5 w-3.5 text-warning" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                              </svg>
-                            ) : (
-                              <RefreshCw className="w-3 h-3" />
-                            )}
-                            <span>Requery</span>
-                          </button>
-                        ) : (
-                          <span className="text-slate-300 font-medium">—</span>
-                        )}
+                        {(() => {
+                          if (!order.smedata_ref && order.amount === 0) {
+                            return (
+                              <button
+                                onClick={(e) => handleResendBonusFromOrder(e, order)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-[11px] rounded-lg transition-all cursor-pointer shadow-xs active:translate-y-[0.5px]"
+                              >
+                                🎁 Resend Bonus
+                              </button>
+                            );
+                          } else if (!order.smedata_ref && order.amount > 0) {
+                            return (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  alert("Contact Support:\n\nPhone: 09064704370\nEmail: hello@gigupnigeria.com\nWebsite: gigupnigeria.com");
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] rounded-lg transition-all cursor-pointer shadow-xs active:translate-y-[0.5px]"
+                              >
+                                📞 Manual Check
+                              </button>
+                            );
+                          } else if (order.smedata_ref && order.status === 'pending') {
+                            const isRequerying = requeryingRefs[order.smedata_ref] || false;
+                            return (
+                              <button
+                                onClick={(e) => handleRequery(e, order)}
+                                disabled={isRequerying}
+                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-105 hover:bg-blue-200 text-blue-700 disabled:opacity-70 font-semibold text-[11px] rounded-lg transition-all cursor-pointer shadow-xs active:translate-y-[0.5px]"
+                              >
+                                {isRequerying ? (
+                                  <svg className="animate-spin h-3.5 w-3.5 text-blue-700" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                  </svg>
+                                ) : (
+                                  <RefreshCw className="w-3 h-3" />
+                                )}
+                                <span>Requery</span>
+                              </button>
+                            );
+                          } else if (order.amount === 0 && (order.status === 'pending' || order.status === 'failed')) {
+                            return (
+                              <button
+                                onClick={(e) => handleResendBonusFromOrder(e, order)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-[11px] rounded-lg transition-all cursor-pointer shadow-xs active:translate-y-[0.5px]"
+                              >
+                                🎁 Resend Bonus
+                              </button>
+                            );
+                          } else {
+                            return <span className="text-slate-300 font-medium">—</span>;
+                          }
+                        })()}
                       </td>
                     </tr>
                   );

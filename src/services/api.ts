@@ -59,12 +59,14 @@ export async function fetchOrders(
   limit = 20,
   status = 'all',
   network = 'all',
-  search = ''
+  search = '',
+  amountZero = false
 ): Promise<{ orders: Order[]; pagination: { page: number; limit: number; total: number; pages: number } }> {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) });
   if (status && status !== 'all') params.set('status', status);
   if (network && network !== 'all') params.set('network', network);
   if (search) params.set('search', search);
+  if (amountZero) params.set('amount_zero', 'true');
   const res = await fetch(`${BASE_URL}/admin-get-orders?${params}`, { headers: getHeaders(secret) });
   if (!res.ok) {
     if (res.status === 401) throw new Error('Unauthorized');
