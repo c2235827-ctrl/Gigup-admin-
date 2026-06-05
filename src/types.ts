@@ -171,5 +171,36 @@ export interface MarginsData {
   loss_plans: PlanMargin[];
 }
 
+export interface UserActivity {
+  id: string;
+  full_name: string;
+  phone: string;
+  is_online: boolean;
+  last_seen_ago: string;
+  last_seen_at: string | null;
+  total_sessions: number;
+  total_time_formatted: string;
+  days_since_last_seen: number | null;
+  is_inactive: boolean;
+  joined: string;
+}
+
+export interface SessionRecord {
+  id: string;
+  started_at: string;
+  ended_at: string | null;
+  duration_formatted: string;
+  started_ago: string;
+  still_active: boolean;
+}
+
+export interface ActivitySummary {
+  online_count: number;
+  inactive_count: number;
+  active_today: number;
+  total_users: number;
+}
+
+
 
 

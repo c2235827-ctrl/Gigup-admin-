@@ -19,6 +19,8 @@ import AnalyticsView from './components/AnalyticsView';
 import ExportView from './components/ExportView';
 import AuditView from './components/AuditView';
 import MarginsView from './components/MarginsView';
+import ActivityView from './components/ActivityView';
+import PushView from './components/PushView';
 
 export default function App() {
   // Session Authentication State
@@ -308,6 +310,14 @@ export default function App() {
 
               {activeTab === 'margins' && (
                 <MarginsView adminSecret={adminSecret} addToast={addToast} />
+              )}
+
+              {activeTab === 'activity' && (
+                <ActivityView adminSecret={adminSecret} addToast={addToast} />
+              )}
+
+              {activeTab === 'push' && (
+                <PushView adminSecret={adminSecret} addToast={addToast} />
               )}
 
               {activeTab === 'export' && (

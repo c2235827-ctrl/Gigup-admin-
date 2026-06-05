@@ -1,4 +1,4 @@
-import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData } from '../types';
+import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary } from '../types';
 
 const BASE_URL = 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
 
@@ -308,5 +308,31 @@ export async function fetchPlanMargins(secret: string): Promise<MarginsData> {
   if (!res.ok) throw new Error('Failed to load plan margins');
   return await res.json();
 }
+
+export async function fetchUserActivity(secret: string): Promise<{ summary: ActivitySummary; users: UserActivity[] }> {
+  const res = await fetch(`${BASE_URL}/admin-user-activity`, { headers: getHeaders(secret) });
+  if (!res.ok) throw new Error('Failed to load activity');
+  return await res.json();
+}
+
+export async function fetchUserSessions(secret: string, userId: string): Promise<{ sessions: SessionRecord[] }> {
+  const res = await fetch(`${BASE_URL}/admin-user-activity?user_id=${userId}`, { headers: getHeaders(secret) });
+  if (!res.ok) throw new Error('Failed to load sessions');
+  return await res.json();
+}
+
+export async function sendPushNotification(
+  secret: string,
+  payload: { title: string; message: string; target: 'all' | 'inactive' | 'user'; user_id?: string; inactive_days?: number }
+): Promise<{ success: boolean; recipients: number }> {
+  const res = await fetch(`${BASE_URL}/admin-send-push`, {
+    method: 'POST',
+    headers: { ...getHeaders(secret), 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error('Failed to send push notification');
+  return await res.json();
+}
+
 
 
