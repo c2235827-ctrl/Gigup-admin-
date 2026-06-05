@@ -275,6 +275,7 @@ export default function UsersView({ adminSecret, addToast }: UsersViewProps) {
                 <th className="px-6 py-4">Name</th>
                 <th className="px-6 py-4">Phone</th>
                 <th className="px-6 py-4 text-right">Wallet</th>
+                <th className="px-6 py-4 text-right">Bonus</th>
                 <th className="px-6 py-4 text-right">Cashback</th>
                 <th className="px-6 py-4 text-center">Orders</th>
                 <th className="px-6 py-4 text-right">Spent</th>
@@ -292,6 +293,7 @@ export default function UsersView({ adminSecret, addToast }: UsersViewProps) {
                     <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-24" /></td>
                     <td className="px-6 py-4 text-right"><div className="h-4 bg-slate-100 rounded w-16 ml-auto" /></td>
                     <td className="px-6 py-4 text-right"><div className="h-4 bg-slate-100 rounded w-16 ml-auto" /></td>
+                    <td className="px-6 py-4 text-right"><div className="h-4 bg-slate-100 rounded w-16 ml-auto" /></td>
                     <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-8 mx-auto" /></td>
                     <td className="px-6 py-4 text-right"><div className="h-4 bg-slate-100 rounded w-16 ml-auto" /></td>
                     <td className="px-6 py-4"><div className="h-5 bg-slate-100 rounded-full w-16 mx-auto" /></td>
@@ -301,7 +303,7 @@ export default function UsersView({ adminSecret, addToast }: UsersViewProps) {
                 ))
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={11} className="px-6 py-12 text-center text-slate-400">
                     No active clients matched your search query. Try typing another term.
                   </td>
                 </tr>
@@ -323,6 +325,15 @@ export default function UsersView({ adminSecret, addToast }: UsersViewProps) {
                       <span className="text-sm font-bold text-success font-mono">
                         {formatNaira(user.wallet_balance)}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {user.bonus_balance !== undefined && user.bonus_balance > 0 ? (
+                        <span className="text-sm font-bold text-amber-500 font-mono">
+                          {formatNaira(user.bonus_balance)}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 font-mono">—</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <span className="text-sm font-bold text-amber-500 font-mono">
@@ -536,6 +547,23 @@ export default function UsersView({ adminSecret, addToast }: UsersViewProps) {
                     </span>
                   </div>
                 </div>
+
+                {/* WELCOME BONUS INFO */}
+                {selectedUser.bonus_balance !== undefined && selectedUser.bonus_balance > 0 && (
+                  <div className="p-4 rounded-xl bg-amber-50/50 border border-[#FEF3C7] space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <span>🎁</span> Welcome Bonus
+                      </span>
+                      <span className="text-sm font-bold text-amber-500 font-mono">
+                        {formatNaira(selectedUser.bonus_balance)}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-medium select-none">
+                      Bonus is data-purchase only — not withdrawable
+                    </p>
+                  </div>
+                )}
 
                 {/* PAST HISTORY ROW */}
                 <div className="space-y-3">

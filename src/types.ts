@@ -36,6 +36,7 @@ export interface User {
   successful_orders?: number;
   total_spent?: number;
   cashback_balance?: number;
+  bonus_balance?: number;
   created_at: string;
 }
 

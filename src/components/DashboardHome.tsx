@@ -26,6 +26,7 @@ import {
 } from 'recharts';
 import { Stats, Order, User } from '../types';
 import { formatNaira, formatDateTime, getInitials } from '../utils/formatters';
+import { fetchUsers } from '../services/api';
 
 interface DashboardHomeProps {
   stats: Stats;
@@ -104,6 +105,7 @@ export default function DashboardHome({
 
   // Auto-refresh seconds counter tracker
   const [secondsAgo, setSecondsAgo] = useState(0);
+  const [totalBonusOutstanding, setTotalBonusOutstanding] = useState<number | null>(null);
 
   useEffect(() => {
     setSecondsAgo(0);
@@ -111,6 +113,28 @@ export default function DashboardHome({
       setSecondsAgo((prev) => prev + 1);
     }, 1000);
     return () => clearInterval(interval);
+  }, [stats]);
+
+  useEffect(() => {
+    let active = true;
+    const fetchAllUsersForBonusSum = async () => {
+      try {
+        const secret = sessionStorage.getItem('gigup_admin_secret');
+        if (!secret) return;
+        // Fetch users (page 1, limit 1000 to cover all users)
+        const response = await fetchUsers(secret, 1, 1000);
+        if (response && response.users && active) {
+          const sum = response.users.reduce((acc, user) => acc + (user.bonus_balance || 0), 0);
+          setTotalBonusOutstanding(sum);
+        }
+      } catch (err) {
+        console.warn('Failed to compute outstanding bonus', err);
+      }
+    };
+    fetchAllUsersForBonusSum();
+    return () => {
+      active = false;
+    };
   }, [stats]);
 
   // Extract top spenders sorted by total_spent descending
@@ -199,7 +223,7 @@ export default function DashboardHome({
       </div>
 
       {/* STAT CARDS ROW */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-4">
         {/* TOTAL USERS */}
         <motion.div 
           variants={cardVariants}
@@ -274,6 +298,27 @@ export default function DashboardHome({
             <h3 className="text-2xl font-bold font-mono text-slate-900">{formatNaira(stats.total_cashback_given || 0)}</h3>
             <span className="text-[11px] text-amber-650 bg-amber-50 px-2 py-0.5 rounded-full font-bold mt-1.5 inline-flex items-center gap-0.5">
               Promo rewards pool
+            </span>
+          </div>
+        </motion.div>
+
+        {/* BONUS OUTSTANDING */}
+        <motion.div 
+          variants={cardVariants}
+          className="bg-white p-5 rounded-xl border border-slate-105 shadow-geometric flex flex-col justify-between group hover:shadow-geometric-lg hover:border-slate-300 transition-all h-40"
+        >
+          <div className="flex justify-between items-start">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Bonus Outstanding</span>
+            <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center shrink-0">
+              <Gift className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="mt-2">
+            <h3 className="text-2xl font-bold font-mono text-amber-500">
+              {totalBonusOutstanding !== null ? formatNaira(totalBonusOutstanding) : '₦0.00'}
+            </h3>
+            <span className="text-[11px] text-amber-650 bg-amber-50 px-2 py-0.5 rounded-full font-bold mt-1.5 inline-flex items-center gap-0.5">
+              Unclaimed welcome bonuses
             </span>
           </div>
         </motion.div>

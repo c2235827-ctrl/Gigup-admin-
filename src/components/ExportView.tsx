@@ -46,11 +46,12 @@ export default function ExportView({ adminSecret, addToast }: ExportViewProps) {
         throw new Error('No users registered to export yet.');
       }
       
-      const header = ['Full Name', 'Phone', 'Wallet Balance (₦)', 'Cashback Balance (₦)', 'Orders Count', 'Total Spent (₦)', 'Joined Date'];
+      const header = ['Full Name', 'Phone', 'Wallet Balance (₦)', 'Welcome Bonus (₦)', 'Cashback Balance (₦)', 'Orders Count', 'Total Spent (₦)', 'Joined Date'];
       const rows = usersList.map((user: any) => [
         user.full_name,
         user.phone,
         user.wallet_balance || 0,
+        user.bonus_balance || 0,
         user.cashback_balance || 0,
         user.successful_orders || 0,
         user.total_spent || 0,
@@ -206,6 +207,7 @@ export default function ExportView({ adminSecret, addToast }: ExportViewProps) {
                   <th className="px-6 py-3">Full Name</th>
                   <th className="px-6 py-3">Phone</th>
                   <th className="px-6 py-3 text-right">Wallet (₦)</th>
+                  <th className="px-6 py-3 text-right">Welcome Bonus (₦)</th>
                   <th className="px-6 py-3 text-right">Cashback (₦)</th>
                   <th className="px-6 py-3 text-center">Orders</th>
                   <th className="px-6 py-3 text-right">Spent (₦)</th>
@@ -236,6 +238,13 @@ export default function ExportView({ adminSecret, addToast }: ExportViewProps) {
                     </td>
                     <td className="px-6 py-3 text-right font-mono font-bold text-success">
                       {formatNaira(user.wallet_balance || 0)}
+                    </td>
+                    <td className="px-6 py-3 text-right font-mono font-bold text-amber-500">
+                      {user.bonus_balance && user.bonus_balance > 0 ? (
+                        formatNaira(user.bonus_balance)
+                      ) : (
+                        <span>—</span>
+                      )}
                     </td>
                     <td className="px-6 py-3 text-right font-mono font-bold text-amber-500">
                       {formatNaira(user.cashback_balance || 0)}
