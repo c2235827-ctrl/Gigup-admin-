@@ -127,4 +127,48 @@ export interface AuditLog {
   ipAddress?: string;
 }
 
+export interface PlanMargin {
+  id: string;
+  network: string;
+  plan_name: string;
+  size_label: string;
+  validity: string;
+  active: boolean;
+  cost_price: number;
+  selling_price: number;
+  markup: number;
+  markup_pct: number;
+  units_sold: number;
+  total_revenue: number;
+  total_cost: number;
+  total_profit: number;
+  is_loss: boolean;
+}
+
+export interface MarginsData {
+  success: boolean;
+  summary: {
+    total_revenue: number;
+    total_cost: number;
+    total_profit: number;
+    total_plans: number;
+    loss_plans_count: number;
+    best_margin_plan: string;
+    best_margin_pct: number;
+    most_profitable_plan: string;
+    most_profitable_amount: number;
+  };
+  by_network: Array<{
+    network: string;
+    total_revenue: number;
+    total_cost: number;
+    total_profit: number;
+    units_sold: number;
+    loss_plans: number;
+  }>;
+  plans: PlanMargin[];
+  loss_plans: PlanMargin[];
+}
+
+
 

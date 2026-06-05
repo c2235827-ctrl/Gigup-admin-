@@ -1,4 +1,4 @@
-import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData } from '../types';
+import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData } from '../types';
 
 const BASE_URL = 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
 
@@ -300,4 +300,13 @@ export async function fetchExportUsers(
   }
   return await res.json();
 }
+
+export async function fetchPlanMargins(secret: string): Promise<MarginsData> {
+  const res = await fetch(`${BASE_URL}/admin-plan-margins`, {
+    headers: getHeaders(secret)
+  });
+  if (!res.ok) throw new Error('Failed to load plan margins');
+  return await res.json();
+}
+
 

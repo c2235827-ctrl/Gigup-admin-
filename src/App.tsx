@@ -18,6 +18,7 @@ import OrderDetailModal from './components/OrderDetailModal';
 import AnalyticsView from './components/AnalyticsView';
 import ExportView from './components/ExportView';
 import AuditView from './components/AuditView';
+import MarginsView from './components/MarginsView';
 
 export default function App() {
   // Session Authentication State
@@ -303,6 +304,10 @@ export default function App() {
                   adminSecret={adminSecret}
                   addToast={addToast}
                 />
+              )}
+
+              {activeTab === 'margins' && (
+                <MarginsView adminSecret={adminSecret} addToast={addToast} />
               )}
 
               {activeTab === 'export' && (

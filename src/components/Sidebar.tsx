@@ -13,10 +13,11 @@ import {
   Coins,
   BarChart2,
   Download,
-  History
+  History,
+  TrendingUp
 } from 'lucide-react';
 
-export type ActiveTab = 'dashboard' | 'orders' | 'withdrawals' | 'users' | 'plans' | 'settings' | 'analytics' | 'export' | 'audit';
+export type ActiveTab = 'dashboard' | 'orders' | 'withdrawals' | 'users' | 'plans' | 'settings' | 'analytics' | 'export' | 'audit' | 'margins';
 
 interface SidebarProps {
   activeTab: ActiveTab;
@@ -48,6 +49,7 @@ export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, p
     },
     { id: 'users' as ActiveTab, label: 'Users', icon: Users },
     { id: 'analytics' as ActiveTab, label: 'Analytics', icon: BarChart2 },
+    { id: 'margins' as ActiveTab, label: 'Plan Margins', icon: TrendingUp },
     { id: 'export' as ActiveTab, label: 'Export Users', icon: Download },
     { id: 'audit' as ActiveTab, label: 'Audit Logs', icon: History },
     { id: 'plans' as ActiveTab, label: 'Plans', icon: Radio },
