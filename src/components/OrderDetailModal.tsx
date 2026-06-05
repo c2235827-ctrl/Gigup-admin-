@@ -17,6 +17,7 @@ import {
 import { Order } from '../types';
 import { requeryOrder, resendSignupBonus } from '../services/api';
 import { formatNaira, formatDateTime } from '../utils/formatters';
+import { addAuditLog } from '../utils/auditLogger';
 
 interface OrderDetailModalProps {
   order: Order | null;
@@ -45,11 +46,15 @@ export default function OrderDetailModal({
       const result = await resendSignupBonus(adminSecret, order.user_id);
       addToast(result.success ? 'success' : 'error', result.message);
       if (result.success) {
+        addAuditLog('order', 'resend_signup_bonus', `Resent 1GB welcome data bonus to recipient ${order.recipient_phone} from order detail view. Order ID: ${order.id}`, 'success');
         onRefreshAll();
         onClose();
+      } else {
+        addAuditLog('order', 'resend_signup_bonus', `Failed to resend welcome 1GB welcome data bonus to recipient ${order.recipient_phone} from order detail view: ${result.message}`, 'failed');
       }
     } catch (err: any) {
       addToast('error', err.message || 'Failed to resend bonus');
+      addAuditLog('order', 'resend_signup_bonus', `Error trying to resend welcome data bonus to recipient ${order.recipient_phone}: ${err.message || err}`, 'failed');
     } finally {
       setIsResending(false);
     }
@@ -69,16 +74,23 @@ export default function OrderDetailModal({
       if (response.success) {
         if (response.smedata_status === 'success') {
           addToast('success', `✅ Verified delivery successfully!`);
+          addAuditLog('order', 'requery_transaction', `Requeried order reference ${order.smedata_ref} from detail modal. Status: SUCCESS`, 'success');
         } else if (response.smedata_status === 'failed') {
           addToast('warning', `❌ Carrier reported failure. User wallet refunded.`);
+          addAuditLog('order', 'requery_transaction', `Requeried order reference ${order.smedata_ref} from detail modal. Status: FAILED (Refunded)`, 'success');
+        } else {
+          addToast('info', `Carrier returned state: ${response.smedata_status}`);
+          addAuditLog('order', 'requery_transaction', `Requeried order reference ${order.smedata_ref} from detail modal. Status: ${response.smedata_status}`, 'success');
         }
         onRefreshAll(); // Trigger reload of stats and feeds
         onClose(); // Close modal on success
       } else {
         addToast('error', `Requery action did not complete successfully`);
+        addAuditLog('order', 'requery_transaction', `Failed to requery order reference ${order.smedata_ref}: API reported failure`, 'failed');
       }
     } catch (err: any) {
       addToast('error', err.message || 'Operation failed.');
+      addAuditLog('order', 'requery_transaction', `Failed to requery order reference ${order.smedata_ref}: ${err.message || err}`, 'failed');
     } finally {
       setIsRequerying(false);
     }

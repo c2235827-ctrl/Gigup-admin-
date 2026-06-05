@@ -10,10 +10,13 @@ import {
   X, 
   ShieldCheck, 
   Database,
-  Coins
+  Coins,
+  BarChart2,
+  Download,
+  History
 } from 'lucide-react';
 
-export type ActiveTab = 'dashboard' | 'orders' | 'withdrawals' | 'users' | 'plans' | 'settings';
+export type ActiveTab = 'dashboard' | 'orders' | 'withdrawals' | 'users' | 'plans' | 'settings' | 'analytics' | 'export' | 'audit';
 
 interface SidebarProps {
   activeTab: ActiveTab;
@@ -44,6 +47,9 @@ export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, p
       badgeColor: 'bg-red-500 text-white font-bold'
     },
     { id: 'users' as ActiveTab, label: 'Users', icon: Users },
+    { id: 'analytics' as ActiveTab, label: 'Analytics', icon: BarChart2 },
+    { id: 'export' as ActiveTab, label: 'Export Users', icon: Download },
+    { id: 'audit' as ActiveTab, label: 'Audit Logs', icon: History },
     { id: 'plans' as ActiveTab, label: 'Plans', icon: Radio },
     { id: 'settings' as ActiveTab, label: 'Settings', icon: Settings },
   ];

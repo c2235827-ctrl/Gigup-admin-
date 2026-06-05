@@ -20,6 +20,7 @@ import {
 import { AppSetting, GatewayStatus } from '../types';
 import { fetchManageData, updateAppSetting, SETTING_LABELS, fetchGatewayStatus, updateGateway } from '../services/api';
 import { formatNaira } from '../utils/formatters';
+import { addAuditLog } from '../utils/auditLogger';
 
 interface SettingsViewProps {
   adminSecret: string;
@@ -94,19 +95,23 @@ export default function SettingsView({ adminSecret, addToast }: SettingsViewProp
       return;
     }
 
+    const readableLabel = SETTING_LABELS[key as keyof typeof SETTING_LABELS] || key;
     setIsSavingKey(key);
     try {
       const outcome = await updateAppSetting(adminSecret, key, editingValue.trim());
       if (outcome.success) {
         addToast('success', `Setting "${key}" updated successfully!`);
+        addAuditLog('setting', 'update_setting', `Successfully updated app setting "${readableLabel}" (${key}) to ${editingValue.trim()}`, 'success');
         setEditingKey(null);
         setEditingValue('');
         loadSettings(); // Reload rows
       } else {
         addToast('error', outcome.message || 'Error saving configuration.');
+        addAuditLog('setting', 'update_setting', `Failed to update app setting "${readableLabel}" (${key}) to ${editingValue.trim()}: ${outcome.message}`, 'failed');
       }
     } catch (err: any) {
       addToast('error', err.message || 'Failed to sync settings database.');
+      addAuditLog('setting', 'update_setting', `Error while attempting to update app setting "${readableLabel}" (${key}): ${err.message || err}`, 'failed');
     } finally {
       setIsSavingKey(null);
     }
@@ -128,15 +133,18 @@ export default function SettingsView({ adminSecret, addToast }: SettingsViewProp
       });
       if (outcome.success) {
         addToast('success', outcome.message || 'Payment gateway settings updated successfully!');
+        addAuditLog('gateway', 'update_gateway', `Successfully updated Flutterwave payment gateway credentials. Mode: ${flwMode.toUpperCase()}`, 'success');
         setIsModalOpen(false);
         setFlwSecretKey('');
         setFlwPublicKey('');
         loadGateway();
       } else {
         addToast('error', outcome.message || 'Error updating gateway settings.');
+        addAuditLog('gateway', 'update_gateway', `Failed to update Flutterwave payment gateway credentials in mode ${flwMode.toUpperCase()}: ${outcome.message}`, 'failed');
       }
     } catch (err: any) {
       addToast('error', err.message || 'Failed to save payment gateway configuration.');
+      addAuditLog('gateway', 'update_gateway', `Error while configuring Flutterwave payment gateway: ${err.message || err}`, 'failed');
     } finally {
       setIsSavingGateway(false);
     }

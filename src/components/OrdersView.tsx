@@ -18,6 +18,7 @@ import {
 import { Order } from '../types';
 import { fetchOrders, requeryOrder, fetchPendingPayments, manualWalletCredit, resendSignupBonus } from '../services/api';
 import { formatNaira, formatDateTime } from '../utils/formatters';
+import { addAuditLog } from '../utils/auditLogger';
 
 interface OrdersViewProps {
   adminSecret: string;
@@ -98,13 +99,16 @@ export default function OrdersView({
       const result = await manualWalletCredit(adminSecret, userId, amount, ref);
       if (result.success) {
         addToast('success', `✅ Wallet credited with ₦${amount.toLocaleString()} for ${userName}`);
+        addAuditLog('user', 'manual_wallet_credit', `Approved pending ledger topup for user "${userName}" (ID: ${userId}) - credited ₦${amount.toLocaleString()}. Ref: ${ref}`, 'success');
         loadPendingPayments();
         onRefreshStats();
       } else {
         addToast('error', result.message || 'Failed to complete credit');
+        addAuditLog('user', 'manual_wallet_credit', `Failed to approve topup for user "${userName}" (ID: ${userId}): ${result.message}`, 'failed');
       }
     } catch (err: any) {
       addToast('error', err.message || 'Error processing manual credit.');
+      addAuditLog('user', 'manual_wallet_credit', `Error executing manual credit flow for user "${userName}": ${err.message || err}`, 'failed');
     } finally {
       setMarkingPaidId(null);
     }
@@ -192,19 +196,24 @@ export default function OrdersView({
       if (response.success) {
         if (response.smedata_status === 'success') {
           addToast('success', `✅ Order verified as SUCCESS (Ref: ${ref})`);
+          addAuditLog('order', 'requery_transaction', `Successfully requeried order ${order.plan_name} for recipient ${order.recipient_phone} (Ref: ${ref}) - Status: SUCCESS`, 'success');
         } else if (response.smedata_status === 'failed') {
           addToast('warning', `❌ Order marked as FAILED - refunded (Ref: ${ref})`);
+          addAuditLog('order', 'requery_transaction', `Successfully requeried order ${order.plan_name} for recipient ${order.recipient_phone} (Ref: ${ref}) - Status: FAILED (Refunded)`, 'success');
         } else {
           addToast('info', `Order returned status: ${response.smedata_status.toUpperCase()}`);
+          addAuditLog('order', 'requery_transaction', `Successfully requeried order ${order.plan_name} for recipient ${order.recipient_phone} (Ref: ${ref}) - Status: ${response.smedata_status.toUpperCase()}`, 'success');
         }
         // Refresh orders on table and dashboard metrics
         loadOrders();
         onRefreshStats();
       } else {
         addToast('error', `Requery reported error for Ref ${ref}`);
+        addAuditLog('order', 'requery_transaction', `Failed to requery order ${order.plan_name} for recipient ${order.recipient_phone} (Ref: ${ref}) - API reported failure`, 'failed');
       }
     } catch (err: any) {
       addToast('error', err.message || `Requery transaction call failed.`);
+      addAuditLog('order', 'requery_transaction', `Failed to requery order (Ref: ${ref}): ${err.message || err}`, 'failed');
     } finally {
       setRequeryingRefs(prev => ({ ...prev, [ref]: false }));
     }
@@ -216,9 +225,15 @@ export default function OrdersView({
     try {
       const result = await resendSignupBonus(adminSecret, order.user_id);
       addToast(result.success ? 'success' : 'error', result.message);
-      loadOrders();
+      if (result.success) {
+        addAuditLog('order', 'resend_signup_bonus', `Resent 1GB welcome data bonus to recipient ${order.recipient_phone} from order journal action. Ref: ${order.id}`, 'success');
+        loadOrders();
+      } else {
+        addAuditLog('order', 'resend_signup_bonus', `Failed to resend welcome data bonus to recipient ${order.recipient_phone} from order journal action: ${result.message}`, 'failed');
+      }
     } catch (err: any) {
       addToast('error', err.message || 'Failed to resend bonus');
+      addAuditLog('order', 'resend_signup_bonus', `Error trying to resend welcome data bonus to recipient ${order.recipient_phone} from order journal: ${err.message || err}`, 'failed');
     }
   };
 

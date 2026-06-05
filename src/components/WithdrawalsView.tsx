@@ -19,6 +19,7 @@ import {
 import { Withdrawal } from '../types';
 import { fetchWithdrawals, processWithdrawal } from '../services/api';
 import { formatNaira, formatDateTime } from '../utils/formatters';
+import { addAuditLog } from '../utils/auditLogger';
 
 interface WithdrawalsViewProps {
   adminSecret: string;
@@ -84,8 +85,10 @@ export default function WithdrawalsView({ adminSecret, addToast, onProcessed }: 
       if (resp.success) {
         if (processType === 'paid') {
           addToast('success', `Withdrawal marked as paid. User notified.`);
+          addAuditLog('withdrawal', 'process_withdrawal', `Approved withdrawal request of ₦${activeWithdrawal.amount.toLocaleString()} for "${activeWithdrawal.account_name}" (${activeWithdrawal.bank_name}, Acct: ${activeWithdrawal.account_number}) as PAID`, 'success');
         } else {
           addToast('success', `Withdrawal rejected. User's cashback refunded.`);
+          addAuditLog('withdrawal', 'process_withdrawal', `Rejected withdrawal request of ₦${activeWithdrawal.amount.toLocaleString()} for "${activeWithdrawal.account_name}" (${activeWithdrawal.bank_name}, Acct: ${activeWithdrawal.account_number}). Justification: "${adminNote.trim()}"`, 'success');
         }
         // Refresh parent count state & reload table
         onProcessed();
@@ -93,9 +96,11 @@ export default function WithdrawalsView({ adminSecret, addToast, onProcessed }: 
         handleCloseProcessModal();
       } else {
         addToast('error', resp.message || 'Failed to process withdrawal action.');
+        addAuditLog('withdrawal', 'process_withdrawal', `Failed processing withdrawal of ₦${activeWithdrawal.amount.toLocaleString()} for "${activeWithdrawal.account_name}" as ${processType}: ${resp.message}`, 'failed');
       }
     } catch (err: any) {
       addToast('error', err.message || 'Internal connection failure processing request.');
+      addAuditLog('withdrawal', 'process_withdrawal', `Error processing withdrawal of ₦${activeWithdrawal.amount.toLocaleString()} for "${activeWithdrawal.account_name}" as ${processType}: ${err.message || err}`, 'failed');
     } finally {
       setIsSubmitting(false);
     }

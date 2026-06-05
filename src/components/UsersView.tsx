@@ -20,6 +20,7 @@ import {
 import { User, Order } from '../types';
 import { fetchUsers, fetchOrders, resendSignupBonus, manualWalletCredit } from '../services/api';
 import { formatNaira, formatDateTime, formatDateOnly, getInitials } from '../utils/formatters';
+import { addAuditLog } from '../utils/auditLogger';
 
 interface UsersViewProps {
   adminSecret: string;
@@ -158,13 +159,16 @@ export default function UsersView({ adminSecret, addToast }: UsersViewProps) {
       const result = await resendSignupBonus(adminSecret, userId);
       if (result.success && result.status === 'sent') {
         addToast('success', result.message || `✅ Bonus sent to ${userName}`);
+        addAuditLog('user', 'resend_signup_bonus', `Successfully resent 1GB welcome data bonus to user "${userName}" (ID: ${userId})`, 'success');
       } else {
         addToast('error', result.message || '❌ Failed — check SMEDATA balance');
+        addAuditLog('user', 'resend_signup_bonus', `Failed to send 1GB welcome data bonus to user "${userName}" (ID: ${userId}): ${result.message}`, 'failed');
       }
       await loadUsers(); // refresh list
       setSelectedUser(prev => prev && prev.id === userId ? { ...prev, signup_bonus_claimed: true } : prev);
     } catch (err: any) {
       addToast('error', err.message || 'Failed to resend bonus');
+      addAuditLog('user', 'resend_signup_bonus', `Error trying to resend welcome bonus to user "${userName}": ${err.message || err}`, 'failed');
     } finally {
       setResendingBonus(null);
     }
@@ -183,10 +187,12 @@ export default function UsersView({ adminSecret, addToast }: UsersViewProps) {
     try {
       await manualWalletCredit(adminSecret, userId, amount, reference);
       addToast('success', `✅ ₦${amount.toLocaleString()} credited to ${userName}`);
+      addAuditLog('user', 'manual_wallet_credit', `Manually credited ₦${amount.toLocaleString()} to user "${userName}" wallet balance. Ref: ${reference}`, 'success');
       await loadUsers();
       setSelectedUser(prev => prev && prev.id === userId ? { ...prev, wallet_balance: prev.wallet_balance + amount } : prev);
     } catch (err: any) {
       addToast('error', err.message || 'Failed to credit wallet');
+      addAuditLog('user', 'manual_wallet_credit', `Failed to manually credit user "${userName}"'s wallet: ${err.message || err}`, 'failed');
     }
   };
 
@@ -199,7 +205,7 @@ export default function UsersView({ adminSecret, addToast }: UsersViewProps) {
       const res = await fetchOrders(adminSecret, 1, 5, 'all', 'all', user.phone);
       setUserOrders(res.orders || []);
     } catch (err) {
-      console.error('Failed to load selected user orders list:', err);
+      console.warn('Failed to load selected user orders list:', err);
       setUserOrders([]);
     } finally {
       setIsLoadingOrders(false);

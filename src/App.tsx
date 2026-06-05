@@ -15,6 +15,9 @@ import PlansView from './components/PlansView';
 import SettingsView from './components/SettingsView';
 import WithdrawalsView from './components/WithdrawalsView';
 import OrderDetailModal from './components/OrderDetailModal';
+import AnalyticsView from './components/AnalyticsView';
+import ExportView from './components/ExportView';
+import AuditView from './components/AuditView';
 
 export default function App() {
   // Session Authentication State
@@ -88,11 +91,11 @@ export default function App() {
       const [dashboardData, withdrawalsRes, pendingBonusesRes] = await Promise.all([
         fetchStats(adminSecret),
         fetchWithdrawals(adminSecret, 'pending').catch(err => {
-          console.error('Graceful fallback for pending withdrawals load failure:', err);
+          console.warn('Graceful fallback for pending withdrawals load failure:', err);
           return { success: false, withdrawals: [] };
         }),
         fetchOrders(adminSecret, 1, 50, 'pending', 'all', '', true).catch(err => {
-          console.error('Graceful fallback for pending bonus orders load failure:', err);
+          console.warn('Graceful fallback for pending bonus orders load failure:', err);
           return { success: false, orders: [] };
         })
       ]);
@@ -290,6 +293,27 @@ export default function App() {
 
               {activeTab === 'settings' && (
                 <SettingsView
+                  adminSecret={adminSecret}
+                  addToast={addToast}
+                />
+              )}
+
+              {activeTab === 'analytics' && (
+                <AnalyticsView
+                  adminSecret={adminSecret}
+                  addToast={addToast}
+                />
+              )}
+
+              {activeTab === 'export' && (
+                <ExportView
+                  adminSecret={adminSecret}
+                  addToast={addToast}
+                />
+              )}
+
+              {activeTab === 'audit' && (
+                <AuditView
                   adminSecret={adminSecret}
                   addToast={addToast}
                 />

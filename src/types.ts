@@ -84,3 +84,47 @@ export interface DashboardData {
   recent_orders: Order[];
   recent_users: User[];
 }
+
+export interface AnalyticsSummary {
+  total_revenue: number;
+  total_cashback_cost: number;
+  net_revenue: number;
+  total_topups: number;
+  total_orders: number;
+  total_failed: number;
+  total_signups: number;
+  failure_rate: string;
+}
+
+export interface AnalyticsData {
+  success: boolean;
+  range_days: number;
+  summary: AnalyticsSummary;
+  peaks: {
+    busiest_day: string;
+    busiest_hour: string;
+    quietest_day: string;
+    quietest_hour: string;
+  };
+  charts: {
+    daily_revenue: Array<{ date: string; revenue: number; cashback: number; net_revenue: number; orders: number; failed: number }>;
+    daily_signups: Array<{ date: string; count: number }>;
+    daily_topups: Array<{ date: string; amount: number }>;
+    by_day_of_week: Array<{ day: string; orders: number; revenue: number }>;
+    by_hour: Array<{ hour: number; label: string; orders: number; revenue: number }>;
+    by_network: Array<{ network: string; orders: number; revenue: number; failed: number }>;
+    signups_by_day: Array<{ day: string; count: number }>;
+  };
+}
+
+export interface AuditLog {
+  id: string;
+  timestamp: string;
+  action: string;
+  category: 'user' | 'order' | 'withdrawal' | 'plan' | 'setting' | 'gateway';
+  details: string;
+  status: 'success' | 'failed';
+  ipAddress?: string;
+}
+
+

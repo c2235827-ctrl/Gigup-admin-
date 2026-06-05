@@ -18,6 +18,7 @@ import {
 import { Plan } from '../types';
 import { fetchManageData, updatePlan, addPlan } from '../services/api';
 import { formatNaira } from '../utils/formatters';
+import { addAuditLog } from '../utils/auditLogger';
 
 interface PlansViewProps {
   adminSecret: string;
@@ -81,12 +82,15 @@ export default function PlansView({ adminSecret, addToast }: PlansViewProps) {
       const outcome = await updatePlan(adminSecret, plan.id, plan.price, nextActive);
       if (outcome.success) {
         addToast('success', `Plan "${plan.plan_name}" ${nextActive ? 'activated' : 'deactivated'} successfully!`);
+        addAuditLog('plan', 'toggle_plan', `Toggled plan "${plan.plan_name}" (${plan.network}) to ${nextActive ? 'ACTIVE' : 'INACTIVE'}`, 'success');
         loadPlans();
       } else {
         addToast('error', outcome.message || 'Could not update plan status.');
+        addAuditLog('plan', 'toggle_plan', `Failed to toggle plan "${plan.plan_name}" to ${nextActive ? 'ACTIVE' : 'INACTIVE'}: ${outcome.message}`, 'failed');
       }
     } catch (err: any) {
       addToast('error', err.message || 'Operation failed.');
+      addAuditLog('plan', 'toggle_plan', `Error toggling plan "${plan.plan_name}" to ${nextActive ? 'ACTIVE' : 'INACTIVE'}: ${err.message || err}`, 'failed');
     } finally {
       setIsLoading(false);
       setPendingTogglePlan(null);
@@ -107,13 +111,16 @@ export default function PlansView({ adminSecret, addToast }: PlansViewProps) {
       const result = await updatePlan(adminSecret, editingPlan.id, editingPlan.price, editingPlan.active);
       if (result.success) {
         addToast('success', `Pricing for "${editingPlan.plan_name}" set to ${formatNaira(editingPlan.price)}`);
+        addAuditLog('plan', 'update_plan', `Updated price/status of plan "${editingPlan.plan_name}" (${editingPlan.network}). New Price: ₦${editingPlan.price.toLocaleString()}, Active: ${editingPlan.active}`, 'success');
         setEditingPlan(null);
         loadPlans();
       } else {
         addToast('error', result.message || 'Plan update was not successful.');
+        addAuditLog('plan', 'update_plan', `Failed to update plan "${editingPlan.plan_name}": ${result.message}`, 'failed');
       }
     } catch (err: any) {
       addToast('error', err.message || 'Pricing update failed.');
+      addAuditLog('plan', 'update_plan', `Error when updating plan "${editingPlan.plan_name}": ${err.message || err}`, 'failed');
     } finally {
       setIsSubmitting(false);
     }
@@ -135,6 +142,7 @@ export default function PlansView({ adminSecret, addToast }: PlansViewProps) {
       const response = await addPlan(adminSecret, newPlanForm);
       if (response.success) {
         addToast('success', `New VTU Plan "${newPlanForm.plan_name}" added successfully!`);
+        addAuditLog('plan', 'add_plan', `Successfully added new dynamic carrier network plan: "${newPlanForm.plan_name}" (${newPlanForm.network}), Rate: ₦${newPlanForm.price.toLocaleString()}, SMEDATA Plan ID: ${newPlanForm.smedata_plan_id}`, 'success');
         setIsAddModalOpen(false);
         // Reset Form
         setNewPlanForm({
@@ -148,9 +156,11 @@ export default function PlansView({ adminSecret, addToast }: PlansViewProps) {
         loadPlans();
       } else {
         addToast('error', response.message || 'Failed to add plan catalog.');
+        addAuditLog('plan', 'add_plan', `Failed to add new dynamic plan catalog "${newPlanForm.plan_name}": ${response.message}`, 'failed');
       }
     } catch (err: any) {
       addToast('error', err.message || 'Add plan transaction failed.');
+      addAuditLog('plan', 'add_plan', `Error trying to create new dynamic plan catalog "${newPlanForm.plan_name}": ${err.message || err}`, 'failed');
     } finally {
       setIsSubmitting(false);
     }

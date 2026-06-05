@@ -1,4 +1,4 @@
-import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus } from '../types';
+import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData } from '../types';
 
 const BASE_URL = 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
 
@@ -260,6 +260,44 @@ export async function fetchPendingPayments(
     headers: getHeaders(secret)
   });
   if (!res.ok) throw new Error('Failed to load pending payments');
+  return await res.json();
+}
+
+export async function fetchAnalytics(
+  secret: string,
+  range: number = 30
+): Promise<AnalyticsData> {
+  const res = await fetch(`${BASE_URL}/admin-analytics?range=${range}`, {
+    headers: getHeaders(secret)
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new Error('Unauthorized');
+    throw new Error('Failed to load analytics');
+  }
+  return await res.json();
+}
+
+export async function exportUsersCsv(secret: string): Promise<Blob> {
+  const res = await fetch(`${BASE_URL}/admin-export-users?format=csv`, {
+    headers: getHeaders(secret)
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new Error('Unauthorized');
+    throw new Error('Failed to export users');
+  }
+  return await res.blob();
+}
+
+export async function fetchExportUsers(
+  secret: string
+): Promise<{ success: boolean; total: number; users: any[] }> {
+  const res = await fetch(`${BASE_URL}/admin-export-users?format=json`, {
+    headers: getHeaders(secret)
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new Error('Unauthorized');
+    throw new Error('Failed to load export users');
+  }
   return await res.json();
 }
 
