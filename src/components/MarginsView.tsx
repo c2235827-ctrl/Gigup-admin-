@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
+import { useState, useEffect, Fragment } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
-  TrendingUp, TrendingDown, RefreshCw, AlertTriangle, DollarSign
+  TrendingUp, TrendingDown, RefreshCw, AlertTriangle, DollarSign, Gift, Percent
 } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, Cell, Legend
 } from 'recharts';
 import { fetchPlanMargins } from '../services/api';
-import { MarginsData } from '../types';
+import { MarginsData, PlanMargin } from '../types';
 import { formatNaira } from '../utils/formatters';
 
 interface MarginsViewProps {
@@ -36,6 +36,7 @@ export default function MarginsView({ adminSecret, addToast }: MarginsViewProps)
   const [data, setData] = useState<MarginsData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeNetwork, setActiveNetwork] = useState<'ALL' | 'MTN' | 'GLO' | 'AIRTEL'>('ALL');
+  const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -73,13 +74,13 @@ export default function MarginsView({ adminSecret, addToast }: MarginsViewProps)
   // For the chart — only plans with sales
   const chartPlans = filteredPlans
     .filter(p => p.units_sold > 0)
-    .sort((a, b) => b.total_profit - a.total_profit)
+    .sort((a, b) => b.total_net_profit - a.total_net_profit)
     .slice(0, 15);
 
   const Skeleton = () => (
     <div className="animate-pulse space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {Array.from({ length: 4 }).map((_, i) => (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="bg-white rounded-xl border border-slate-105 p-5 h-28">
             <div className="h-3 bg-slate-100 rounded w-1/2 mb-3" />
             <div className="h-7 bg-slate-100 rounded w-2/3" />
@@ -129,7 +130,7 @@ export default function MarginsView({ adminSecret, addToast }: MarginsViewProps)
                 <div className="flex flex-wrap gap-2 mt-1">
                   {data.loss_plans.map(p => (
                     <span key={p.id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-lg border border-red-200">
-                      {p.plan_name} — losing {formatNaira(Math.abs(p.markup))} per sale
+                      {p.plan_name} — losing {formatNaira(Math.abs(p.net_profit))} per sale
                     </span>
                   ))}
                 </div>
@@ -138,20 +139,24 @@ export default function MarginsView({ adminSecret, addToast }: MarginsViewProps)
           )}
 
           {/* SUMMARY CARDS */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {[
-              { label: 'Total Revenue', value: formatNaira(data.summary.total_revenue), color: 'text-primary-blue', bg: 'bg-blue-50', icon: <DollarSign className="w-5 h-5" /> },
-              { label: 'Total Cost (SMEData)', value: formatNaira(data.summary.total_cost), color: 'text-warning', bg: 'bg-amber-50', icon: <TrendingDown className="w-5 h-5" /> },
-              { label: 'Total Profit', value: formatNaira(data.summary.total_profit), color: 'text-success', bg: 'bg-green-50', icon: <TrendingUp className="w-5 h-5" />, large: true },
-              { label: 'Plans at a Loss', value: data.summary.loss_plans_count.toString(), color: data.summary.loss_plans_count > 0 ? 'text-danger' : 'text-success', bg: data.summary.loss_plans_count > 0 ? 'bg-red-50' : 'bg-green-50', icon: <AlertTriangle className="w-5 h-5" /> },
+              { label: 'Total Revenue', value: formatNaira(data.summary.overall_total_revenue), color: 'text-primary-blue', bg: 'bg-blue-50', icon: <DollarSign className="w-5 h-5" />, subtitle: 'Gross incoming sales' },
+              { label: 'SMEData Cost', value: formatNaira(data.summary.overall_total_smedata_cost), color: 'text-warning', bg: 'bg-amber-50', icon: <TrendingDown className="w-5 h-5" />, subtitle: 'Total paid to SMEData' },
+              { label: 'Gross Markup', value: formatNaira(data.summary.overall_total_gross_markup), color: 'text-purple-500', bg: 'bg-purple-50', icon: <TrendingUp className="w-5 h-5" />, subtitle: 'What we added on top' },
+              { label: 'Cashback Paid Out', value: formatNaira(data.summary.overall_total_cashback), color: 'text-orange-500', bg: 'bg-orange-50', icon: <Gift className="w-5 h-5" />, subtitle: 'Given back to customers' },
+              { label: 'Net Profit', value: formatNaira(data.summary.overall_total_net_profit), color: 'text-success', bg: 'bg-green-50', icon: <TrendingUp className="w-5 h-5" />, subtitle: 'What stays with us', large: true },
             ].map((card) => (
               <motion.div key={card.label} variants={cardVariants}
-                className={`bg-white p-5 rounded-xl border border-slate-105 shadow-geometric flex flex-col justify-between h-32 ${(card as any).large ? 'ring-2 ring-success/20' : ''}`}>
+                className={`bg-white p-4 rounded-xl border border-slate-105 shadow-geometric flex flex-col justify-between h-32 ${card.large ? 'ring-2 ring-success/20 ring-offset-1' : ''}`}>
                 <div className="flex justify-between items-start">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{card.label}</span>
-                  <div className={`w-9 h-9 rounded-lg ${card.bg} ${card.color} flex items-center justify-center shrink-0`}>{card.icon}</div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 line-clamp-1">{card.label}</span>
+                  <div className={`w-8 h-8 rounded-lg ${card.bg} ${card.color} flex items-center justify-center shrink-0`}>{card.icon}</div>
                 </div>
-                <span className={`text-2xl font-bold font-mono ${(card as any).large ? card.color : 'text-slate-900'}`}>{card.value}</span>
+                <div className="mt-2 text-left">
+                  <span className={`text-[20px] font-bold font-mono tracking-tight ${card.large ? card.color : 'text-slate-900'}`}>{card.value}</span>
+                  <span className="block text-[9px] text-slate-400 mt-1 font-semibold">{card.subtitle}</span>
+                </div>
               </motion.div>
             ))}
           </div>
@@ -159,9 +164,9 @@ export default function MarginsView({ adminSecret, addToast }: MarginsViewProps)
           {/* BEST PLAN HIGHLIGHTS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <motion.div variants={cardVariants} className="bg-primary-dark text-white rounded-xl p-5">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">🏆 Best Margin Plan</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">🏆 Best Net Margin Plan</span>
               <span className="block text-lg font-bold">{data.summary.best_margin_plan}</span>
-              <span className="text-primary-blue font-mono font-bold text-xl">{data.summary.best_margin_pct}% markup</span>
+              <span className="text-primary-blue font-mono font-bold text-xl">{data.summary.best_margin_pct}% net margin</span>
             </motion.div>
             <motion.div variants={cardVariants} className="bg-primary-dark text-white rounded-xl p-5">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">💰 Most Profitable Plan (by sales)</span>
@@ -173,31 +178,43 @@ export default function MarginsView({ adminSecret, addToast }: MarginsViewProps)
           {/* NETWORK SUMMARY */}
           <motion.div variants={cardVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {data.by_network.map(net => (
-              <div key={net.network} className="bg-white rounded-xl border border-slate-105 shadow-geometric p-5">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: NETWORK_COLORS[net.network] || '#94A3B8' }} />
-                  <span className="font-bold text-slate-900">{net.network}</span>
-                  <span className="text-xs text-slate-400 ml-auto">{net.units_sold} sold</span>
+              <div key={net.network} className="bg-white rounded-xl border border-slate-105 shadow-geometric p-5 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: NETWORK_COLORS[net.network] || '#94A3B8' }} />
+                    <span className="font-bold text-slate-900">{net.network}</span>
+                    <span className="text-xs text-slate-450 font-bold ml-auto">{net.units_sold} sold</span>
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Revenue</span>
+                      <span className="font-mono font-bold text-primary-blue">{formatNaira(net.total_revenue)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">SMEData Cost</span>
+                      <span className="font-mono font-bold text-warning">{formatNaira(net.total_smedata_cost)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Gross Markup</span>
+                      <span className="font-mono font-bold text-purple-500">{formatNaira(net.total_gross_markup)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Cashback Paid</span>
+                      <span className="font-mono font-bold text-orange-500">{formatNaira(net.total_cashback_given)}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Revenue</span>
-                    <span className="font-mono font-bold text-primary-blue">{formatNaira(net.total_revenue)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Cost (SMEData)</span>
-                    <span className="font-mono font-bold text-warning">{formatNaira(net.total_cost)}</span>
-                  </div>
-                  <div className="flex justify-between border-t border-slate-100 pt-2 mt-2">
-                    <span className="font-bold text-slate-700">Profit</span>
-                    <span className={`font-mono font-bold text-sm ${net.total_profit >= 0 ? 'text-success' : 'text-danger'}`}>
-                      {formatNaira(net.total_profit)}
+                <div className="border-t border-slate-100 pt-3 mt-4">
+                  <div className="flex justify-between items-baseline mb-1">
+                    <span className="font-bold text-slate-700 text-xs">Net Profit</span>
+                    <span className={`font-mono font-bold text-lg ${net.total_net_profit >= 0 ? 'text-success' : 'text-danger'}`}>
+                      {formatNaira(net.total_net_profit)}
                     </span>
                   </div>
                   {net.loss_plans > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-danger">Loss plans</span>
-                      <span className="font-bold text-danger">{net.loss_plans}</span>
+                    <div className="flex justify-between mt-1 pt-1 border-t border-dashed border-red-100">
+                      <span className="text-[10px] font-bold text-danger">Plans at a Loss</span>
+                      <span className="font-bold font-mono text-[10px] text-danger">{net.loss_plans}</span>
                     </div>
                   )}
                 </div>
@@ -210,7 +227,7 @@ export default function MarginsView({ adminSecret, addToast }: MarginsViewProps)
             <motion.div variants={cardVariants} className="bg-white rounded-xl border border-slate-105 shadow-geometric p-6">
               <h3 className="text-sm font-bold text-slate-900 mb-1">Profit by Plan (top sellers)</h3>
               <p className="text-xs text-text-muted mb-5">
-                Blue = revenue from customers, Amber = cost to SMEData, Green = your profit
+                Blue = revenue from customers, Amber = cost to SMEData, Green/Red = your actual net profit
               </p>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
@@ -223,10 +240,10 @@ export default function MarginsView({ adminSecret, addToast }: MarginsViewProps)
                     <Tooltip content={<CustomTooltip />} />
                     <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
                     <Bar dataKey="total_revenue" name="Revenue" fill="#3B7EF8" radius={[3, 3, 0, 0]} />
-                    <Bar dataKey="total_cost" name="SMEData Cost" fill="#F59E0B" radius={[3, 3, 0, 0]} />
-                    <Bar dataKey="total_profit" name="Profit" radius={[3, 3, 0, 0]}>
+                    <Bar dataKey="total_smedata_cost" name="SMEData Cost" fill="#F59E0B" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="total_net_profit" name="Net Profit" radius={[3, 3, 0, 0]}>
                       {chartPlans.map((entry, index) => (
-                        <Cell key={index} fill={entry.total_profit >= 0 ? '#22C55E' : '#EF4444'} />
+                        <Cell key={index} fill={entry.total_net_profit >= 0 ? '#22C55E' : '#EF4444'} />
                       ))}
                     </Bar>
                   </BarChart>
@@ -255,67 +272,154 @@ export default function MarginsView({ adminSecret, addToast }: MarginsViewProps)
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-[#FAFBFF] border-b border-[#EEF1F8] text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                    <th className="px-5 py-4">Plan</th>
+                    <th className="px-5 py-4">Plan (Click to inspect)</th>
                     <th className="px-5 py-4">Size</th>
                     <th className="px-5 py-4">Validity</th>
-                    <th className="px-5 py-4 text-right">SMEData Cost</th>
+                    <th className="px-5 py-4 text-right">SMEData Price</th>
                     <th className="px-5 py-4 text-right">We Charge</th>
-                    <th className="px-5 py-4 text-right">Markup</th>
-                    <th className="px-5 py-4 text-right">Markup %</th>
+                    <th className="px-5 py-4 text-right">Gross Markup</th>
+                    <th className="px-5 py-4 text-right font-semibold">Cashback (10%)</th>
+                    <th className="px-5 py-4 text-right font-bold">Net Profit</th>
+                    <th className="px-5 py-4 text-right">Net Margin %</th>
                     <th className="px-5 py-4 text-center">Sold</th>
-                    <th className="px-5 py-4 text-right">Total Profit</th>
+                    <th className="px-5 py-4 text-right font-bold">Total Net Profit</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#EEF1F8] text-xs">
                   {filteredPlans.length === 0 ? (
-                    <tr><td colSpan={9} className="px-5 py-10 text-center text-slate-400">No plans found.</td></tr>
+                    <tr><td colSpan={11} className="px-5 py-10 text-center text-slate-400">No plans found.</td></tr>
                   ) : (
-                    filteredPlans.map(plan => (
-                      <tr key={plan.id} className={`hover:bg-slate-50/30 transition-colors ${plan.is_loss ? 'bg-red-50/40' : ''}`}>
-                        <td className="px-5 py-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full shrink-0"
-                              style={{ backgroundColor: NETWORK_COLORS[plan.network] || '#94A3B8' }} />
-                            <span className="font-semibold text-slate-900">{plan.plan_name}</span>
-                            {plan.is_loss && (
-                              <span className="text-[9px] font-bold bg-red-100 text-danger px-1.5 py-0.5 rounded">LOSS</span>
-                            )}
-                            {!plan.active && (
-                              <span className="text-[9px] font-bold bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded">OFF</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-5 py-3">
-                          <span className="font-mono font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">
-                            {plan.size_label}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3 text-slate-500">{plan.validity}</td>
-                        <td className="px-5 py-3 text-right font-mono font-bold text-warning">{formatNaira(plan.cost_price)}</td>
-                        <td className="px-5 py-3 text-right font-mono font-bold text-slate-900">{formatNaira(plan.selling_price)}</td>
-                        <td className="px-5 py-3 text-right font-mono font-bold">
-                          <span className={plan.markup >= 0 ? 'text-success' : 'text-danger'}>
-                            {plan.markup >= 0 ? '+' : ''}{formatNaira(plan.markup)}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3 text-right">
-                          <span className={`font-bold font-mono text-sm ${
-                            plan.markup_pct >= 20 ? 'text-success' :
-                            plan.markup_pct >= 10 ? 'text-warning' : 'text-danger'
-                          }`}>
-                            {plan.markup_pct >= 0 ? '+' : ''}{plan.markup_pct}%
-                          </span>
-                        </td>
-                        <td className="px-5 py-3 text-center font-mono font-bold text-slate-700">
-                          {plan.units_sold}
-                        </td>
-                        <td className="px-5 py-3 text-right font-mono font-bold">
-                          <span className={plan.total_profit >= 0 ? 'text-success' : 'text-danger'}>
-                            {plan.total_profit > 0 ? '+' : ''}{formatNaira(plan.total_profit)}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
+                    filteredPlans.map(plan => {
+                      const isExpanded = expandedPlanId === plan.id;
+                      const marginColorClass = plan.net_margin_pct >= 8
+                        ? 'text-success bg-green-50 border-green-150'
+                        : plan.net_margin_pct >= 4
+                          ? 'text-warning bg-amber-50 border-amber-200'
+                          : 'text-danger bg-red-50 border-red-150';
+                      return (
+                        <Fragment key={plan.id}>
+                          <tr
+                            onClick={() => setExpandedPlanId(isExpanded ? null : plan.id)}
+                            className={`hover:bg-slate-50/50 transition-colors cursor-pointer ${plan.is_loss ? 'bg-red-50/20' : ''} ${isExpanded ? 'bg-slate-50' : ''}`}
+                          >
+                            <td className="px-5 py-3.5">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full shrink-0 animate-pulse"
+                                  style={{ backgroundColor: NETWORK_COLORS[plan.network] || '#94A3B8' }} />
+                                <span className="font-semibold text-slate-900">{plan.plan_name}</span>
+                                {plan.is_loss && (
+                                  <span className="text-[9px] font-bold bg-red-100 text-danger px-1.5 py-0.5 rounded">LOSS</span>
+                                )}
+                                {!plan.active && (
+                                  <span className="text-[9px] font-bold bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded">OFF</span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <span className="font-mono font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">
+                                {plan.size_label}
+                              </span>
+                            </td>
+                            <td className="px-5 py-3.5 text-slate-500">{plan.validity}</td>
+                            <td className="px-5 py-3.5 text-right font-mono font-bold text-warning">{formatNaira(plan.smedata_price)}</td>
+                            <td className="px-5 py-3.5 text-right font-mono font-bold text-slate-900">{formatNaira(plan.we_charge)}</td>
+                            <td className="px-5 py-3.5 text-right font-mono font-bold text-purple-500">
+                              {plan.gross_markup >= 0 ? '+' : ''}{formatNaira(plan.gross_markup)}
+                            </td>
+                            <td className="px-5 py-3.5 text-right font-mono font-semibold text-orange-500">
+                              -{formatNaira(plan.cashback_given)}
+                            </td>
+                            <td className={`px-5 py-3.5 text-right font-mono font-bold ${plan.net_profit >= 0 ? 'text-success' : 'text-danger'}`}>
+                              {plan.net_profit >= 0 ? '+' : ''}{formatNaira(plan.net_profit)}
+                            </td>
+                            <td className="px-5 py-3.5 text-right">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${marginColorClass}`}>
+                                {plan.net_margin_pct >= 0 ? '+' : ''}{plan.net_margin_pct}%
+                              </span>
+                            </td>
+                            <td className="px-5 py-3.5 text-center font-mono font-bold text-slate-700">
+                              {plan.units_sold}
+                            </td>
+                            <td className={`px-5 py-3.5 text-right font-mono font-bold ${plan.total_net_profit >= 0 ? 'text-success' : 'text-danger'}`}>
+                              {plan.total_net_profit >= 0 ? '+' : ''}{formatNaira(plan.total_net_profit)}
+                            </td>
+                          </tr>
+                          {isExpanded && (
+                            <tr className="bg-slate-50">
+                              <td colSpan={11} className="p-4 bg-slate-50/50">
+                                <motion.div
+                                  initial={{ opacity: 0, y: -5 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  className="bg-[#0D1F3D] text-white rounded-2xl p-5 max-w-md mx-auto shadow-geometric border border-white/10 font-sans my-1"
+                                >
+                                  {/* Receipt header */}
+                                  <div className="text-center border-b border-dashed border-white/20 pb-4 mb-4 select-none">
+                                    <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold block mb-1">📊 Per Sale Breakdown</span>
+                                    <h4 className="text-sm font-bold text-white flex items-center justify-center gap-2">
+                                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: NETWORK_COLORS[plan.network] || '#94A3B8' }} />
+                                      {plan.plan_name}
+                                    </h4>
+                                    <span className="text-[9px] text-slate-300 font-mono bg-white/5 px-2 py-0.5 rounded-md mt-1.5 inline-block">
+                                      {plan.size_label} &middot; {plan.validity}
+                                    </span>
+                                  </div>
+
+                                  {/* Receipt body */}
+                                  <div className="space-y-3 text-xs">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-slate-400">SMEData charges us:</span>
+                                      <span className="font-mono font-bold text-amber-500">{formatNaira(plan.smedata_price)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-slate-400">We charge customer:</span>
+                                      <span className="font-mono font-semibold text-white">{formatNaira(plan.we_charge)}</span>
+                                    </div>
+
+                                    <div className="border-t border-white/10 my-2 pt-2">
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-purple-400 font-semibold">Gross markup:</span>
+                                        <span className="font-mono font-bold text-purple-400">
+                                          {formatNaira(plan.gross_markup)} <span className="text-[10px] font-normal font-sans text-slate-400">({plan.markup_pct}% markup)</span>
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-orange-400 font-semibold">Cashback to customer (10%):</span>
+                                      <span className="font-mono font-bold text-orange-400">-{formatNaira(plan.cashback_given)}</span>
+                                    </div>
+
+                                    <div className="border-t-2 border-dashed border-white/20 my-3 pt-3">
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-success font-bold text-sm">Net profit to us:</span>
+                                        <span className="font-mono font-bold text-success text-base flex flex-col items-end leading-tight">
+                                          <span>{formatNaira(plan.net_profit)}</span>
+                                          <span className="text-[9px] font-normal font-sans text-success/80">({plan.net_margin_pct}% of we charge)</span>
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Receipt footer */}
+                                  <div className="mt-5 bg-white/5 rounded-xl p-3 flex items-center justify-between">
+                                    <div>
+                                      <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold block">Total Units Sold</span>
+                                      <span className="font-mono font-bold text-xs text-white">{plan.units_sold} sale{plan.units_sold === 1 ? '' : 's'}</span>
+                                    </div>
+                                    <div className="text-right">
+                                      <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold block">Net Lifetime Profit</span>
+                                      <span className={`font-mono font-bold text-xs ${plan.total_net_profit >= 0 ? 'text-success' : 'text-danger'}`}>
+                                        {plan.total_net_profit >= 0 ? '+' : ''}{formatNaira(plan.total_net_profit)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      );
+                    })
                   )}
                 </tbody>
               </table>

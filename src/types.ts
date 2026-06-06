@@ -135,23 +135,32 @@ export interface PlanMargin {
   size_label: string;
   validity: string;
   active: boolean;
-  cost_price: number;
-  selling_price: number;
-  markup: number;
+  // Per sale
+  smedata_price: number;
+  we_charge: number;
+  gross_markup: number;
+  cashback_given: number;
+  net_profit: number;
+  net_margin_pct: number;
   markup_pct: number;
+  is_loss: boolean;
+  // Totals
   units_sold: number;
   total_revenue: number;
-  total_cost: number;
-  total_profit: number;
-  is_loss: boolean;
+  total_smedata_cost: number;
+  total_gross_markup: number;
+  total_cashback_given: number;
+  total_net_profit: number;
 }
 
 export interface MarginsData {
   success: boolean;
   summary: {
-    total_revenue: number;
-    total_cost: number;
-    total_profit: number;
+    overall_total_revenue: number;
+    overall_total_smedata_cost: number;
+    overall_total_gross_markup: number;
+    overall_total_cashback: number;
+    overall_total_net_profit: number;
     total_plans: number;
     loss_plans_count: number;
     best_margin_plan: string;
@@ -162,8 +171,10 @@ export interface MarginsData {
   by_network: Array<{
     network: string;
     total_revenue: number;
-    total_cost: number;
-    total_profit: number;
+    total_smedata_cost: number;
+    total_gross_markup: number;
+    total_cashback_given: number;
+    total_net_profit: number;
     units_sold: number;
     loss_plans: number;
   }>;
