@@ -16,10 +16,11 @@ import {
   History,
   TrendingUp,
   Activity,
-  Bell
+  Bell,
+  Trash2
 } from 'lucide-react';
 
-export type ActiveTab = 'dashboard' | 'orders' | 'withdrawals' | 'users' | 'plans' | 'settings' | 'analytics' | 'export' | 'audit' | 'margins' | 'activity' | 'push';
+export type ActiveTab = 'dashboard' | 'orders' | 'withdrawals' | 'users' | 'plans' | 'settings' | 'analytics' | 'export' | 'audit' | 'margins' | 'activity' | 'push' | 'inactive';
 
 interface SidebarProps {
   activeTab: ActiveTab;
@@ -55,6 +56,7 @@ export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, p
     { id: 'activity' as ActiveTab, label: 'User Activity', icon: Activity },
     { id: 'push' as ActiveTab, label: 'Push Notifications', icon: Bell },
     { id: 'export' as ActiveTab, label: 'Export Users', icon: Download },
+    { id: 'inactive' as ActiveTab, label: 'Inactive Accounts', icon: Trash2 },
     { id: 'audit' as ActiveTab, label: 'Audit Logs', icon: History },
     { id: 'plans' as ActiveTab, label: 'Plans', icon: Radio },
     { id: 'settings' as ActiveTab, label: 'Settings', icon: Settings },

@@ -21,6 +21,7 @@ import AuditView from './components/AuditView';
 import MarginsView from './components/MarginsView';
 import ActivityView from './components/ActivityView';
 import PushView from './components/PushView';
+import InactiveAccountsView from './components/InactiveAccountsView';
 
 export default function App() {
   // Session Authentication State
@@ -325,6 +326,10 @@ export default function App() {
                   adminSecret={adminSecret}
                   addToast={addToast}
                 />
+              )}
+              
+              {activeTab === 'inactive' && (
+                <InactiveAccountsView adminSecret={adminSecret} addToast={addToast} />
               )}
 
               {activeTab === 'audit' && (

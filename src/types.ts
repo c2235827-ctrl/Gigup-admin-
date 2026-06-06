@@ -212,6 +212,21 @@ export interface ActivitySummary {
   total_users: number;
 }
 
+export interface InactiveAccount {
+  id: string;
+  full_name: string;
+  phone: string;
+  wallet_balance: number;
+  cashback_balance: number;
+  bonus_balance: number;
+  total_sessions: number;
+  last_seen_at: string | null;
+  created_at: string;
+  days_inactive: number;
+  days_since_joined: number;
+  safe_to_delete: boolean;
+}
+
 
 
 

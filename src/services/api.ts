@@ -1,4 +1,4 @@
-import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary } from '../types';
+import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary, InactiveAccount } from '../types';
 
 const BASE_URL = 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
 
@@ -334,5 +334,34 @@ export async function sendPushNotification(
   return await res.json();
 }
 
+export async function fetchInactiveAccounts(
+  secret: string,
+  days: number = 180
+): Promise<{ total: number; candidates: InactiveAccount[] }> {
+  const res = await fetch(`${BASE_URL}/admin-inactive-accounts?action=list&days=${days}`, {
+    headers: getHeaders(secret)
+  });
+  if (!res.ok) throw new Error('Failed to load inactive accounts');
+  return await res.json();
+}
 
+export async function warnInactiveUser(secret: string, userId: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/admin-inactive-accounts?action=warn&user_id=${userId}`, {
+    headers: getHeaders(secret)
+  });
+  if (!res.ok) throw new Error('Failed to send warning');
+}
 
+export async function deleteInactiveUser(
+  secret: string,
+  userId: string
+): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${BASE_URL}/admin-inactive-accounts?action=delete&user_id=${userId}`, {
+    headers: getHeaders(secret)
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Failed to delete account');
+  }
+  return await res.json();
+}
