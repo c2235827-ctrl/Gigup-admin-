@@ -1,4 +1,4 @@
-import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary, InactiveAccount } from '../types';
+import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary, InactiveAccount, UserStreakAdmin } from '../types';
 
 const BASE_URL = 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
 
@@ -363,5 +363,38 @@ export async function deleteInactiveUser(
     const err = await res.json();
     throw new Error(err.error || 'Failed to delete account');
   }
+  return await res.json();
+}
+
+export async function fetchUserStreaks(secret: string): Promise<UserStreakAdmin[]> {
+  const res = await fetch(`${BASE_URL}/admin-user-activity`, {
+    headers: getHeaders(secret)
+  });
+  if (!res.ok) throw new Error('Failed to load streaks');
+  const data = await res.json();
+  // Merge streak data with user data
+  return (data.users ?? []).map((u: any) => ({
+    user_id: u.id,
+    full_name: u.full_name,
+    phone: u.phone,
+    current_streak: u.current_streak ?? 0,
+    longest_streak: u.longest_streak ?? 0,
+    last_activity_date: u.last_seen_at,
+    streak_reward_7_claimed: false,
+    streak_reward_14_claimed: false,
+    streak_reward_21_claimed: false,
+    streak_reward_30_claimed: false,
+  }));
+}
+
+export async function triggerScheduledNotification(
+  secret: string,
+  type: 'weekly_report' | 'streak_reminder' | 'referral_nudge' | 'monthly_statement'
+): Promise<{ success: boolean; sent?: number; reminded?: number; nudged?: number }> {
+  const res = await fetch(`${BASE_URL}/scheduled-notifications?type=${type}`, {
+    method: 'POST',
+    headers: getHeaders(secret),
+  });
+  if (!res.ok) throw new Error('Failed to trigger notification');
   return await res.json();
 }

@@ -227,6 +227,19 @@ export interface InactiveAccount {
   safe_to_delete: boolean;
 }
 
+export interface UserStreakAdmin {
+  user_id: string;
+  full_name: string;
+  phone: string;
+  current_streak: number;
+  longest_streak: number;
+  last_activity_date: string | null;
+  streak_reward_7_claimed: boolean;
+  streak_reward_14_claimed: boolean;
+  streak_reward_21_claimed: boolean;
+  streak_reward_30_claimed: boolean;
+}
+
 
 
 
