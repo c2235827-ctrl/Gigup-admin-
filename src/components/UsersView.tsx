@@ -201,8 +201,9 @@ export default function UsersView({ adminSecret, addToast }: UsersViewProps) {
     setSelectedUser(user);
     setIsLoadingOrders(true);
     try {
-      // Query past orders related to this user by phone search
-      const res = await fetchOrders(adminSecret, 1, 5, 'all', 'all', user.phone);
+      // Query past orders placed BY this user (filter by user_id, not phone —
+      // phone-based search would also match orders other users sent TO this number)
+      const res = await fetchOrders(adminSecret, 1, 5, 'all', 'all', '', false, user.id);
       setUserOrders(res.orders || []);
     } catch (err) {
       console.warn('Failed to load selected user orders list:', err);
