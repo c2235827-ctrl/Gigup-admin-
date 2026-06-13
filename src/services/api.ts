@@ -414,7 +414,7 @@ export async function fetchAmbassadorDetail(secret: string, ambassadorId: string
 }
 
 export async function createAmbassador(secret: string, payload: {
-  full_name: string; phone: string; email?: string; pin: string; tier_label?: string; monthly_pay?: number; notes?: string;
+  full_name: string; phone: string; email?: string; pin: string; notes?: string;
 }): Promise<{ success: boolean; ambassador?: Ambassador; error?: string }> {
   const res = await fetch(`${BASE_URL}/admin-ambassadors`, {
     method: 'POST', headers: getHeaders(secret),
@@ -438,6 +438,32 @@ export async function deleteAmbassador(secret: string, id: string): Promise<{ su
   });
   return await res.json();
 }
+
+export async function fetchAmbassadorSummariesSubAdmin(subAdminSecret: string): Promise<{ ambassadors: Ambassador[]; role: string }> {
+  const res = await fetch(`${BASE_URL}/ambassador-dashboard`, {
+    headers: { 'x-sub-admin-secret': subAdminSecret, 'Content-Type': 'application/json' },
+  });
+  if (!res.ok) throw new Error('Unauthorized');
+  return await res.json();
+}
+
+export async function fetchAmbassadorDetailSubAdmin(subAdminSecret: string, ambassadorId: string, pin: string): Promise<AmbassadorDetail | { error: string; success?: boolean }> {
+  const res = await fetch(`${BASE_URL}/ambassador-dashboard?ambassador_id=${ambassadorId}`, {
+    headers: { 'x-sub-admin-secret': subAdminSecret, 'x-ambassador-pin': pin, 'Content-Type': 'application/json' },
+  });
+  return await res.json();
+}
+
+export async function fetchAmbassadorSummariesSubAdminList(subAdminSecret: string): Promise<Ambassador[]> {
+  const res = await fetch(`${BASE_URL}/admin-ambassadors`, {
+    method: 'POST',
+    headers: { 'x-sub-admin-secret': subAdminSecret, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'list' }),
+  });
+  const data = await res.json();
+  return data.ambassadors ?? [];
+}
+
 
 export async function loginAmbassador(phone: string, pin: string) {
   const res = await fetch(`${BASE_URL}/ambassador-auth`, {

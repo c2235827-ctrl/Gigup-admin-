@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Star, Plus, X, RefreshCw, ArrowLeft, Copy, TrendingUp, Users, CheckCircle, XCircle, DollarSign } from 'lucide-react';
 import {
   fetchAmbassadorSummaries, fetchAmbassadorDetail,
-  createAmbassador, updateAmbassador, deleteAmbassador,
+  createAmbassador, updateAmbassador, deleteAmbassador, fetchAmbassadorSummariesSubAdmin, fetchAmbassadorDetailSubAdmin
 } from '../services/api';
 import { Ambassador, AmbassadorDetail } from '../types';
 import { formatNaira, getInitials } from '../utils/formatters';
@@ -11,25 +11,33 @@ import { formatNaira, getInitials } from '../utils/formatters';
 interface AmbassadorsViewProps {
   adminSecret: string;
   addToast: (type: 'success' | 'error' | 'warning' | 'info', message: string) => void;
+  role?: 'admin' | 'sub_admin';
 }
 
-const TIER_OPTIONS = ['Trial', '0-50', '50-100', '100-300', '300-500', '500-1000', '1000-1500', '1500-2500', '2500-4000', '4000-6000'];
-
-export default function AmbassadorsView({ adminSecret, addToast }: AmbassadorsViewProps) {
+export default function AmbassadorsView({ adminSecret, addToast, role = 'admin' }: AmbassadorsViewProps) {
   const [ambassadors, setAmbassadors] = useState<Ambassador[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<AmbassadorDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [form, setForm] = useState({ full_name: '', phone: '', email: '', pin: '', tier_label: 'Trial', monthly_pay: 0, notes: '' });
+  const [form, setForm] = useState({ full_name: '', phone: '', email: '', pin: '', notes: '' });
   const [submitting, setSubmitting] = useState(false);
+
+  const [pinModalAmbassador, setPinModalAmbassador] = useState<Ambassador | null>(null);
+  const [enteredPin, setEnteredPin] = useState('');
+  const [verifyingPin, setVerifyingPin] = useState(false);
 
   const load = async () => {
     setIsLoading(true);
     try {
-      const summaries = await fetchAmbassadorSummaries(adminSecret);
-      setAmbassadors(summaries);
+      if (role === 'sub_admin') {
+         const res = await fetchAmbassadorSummariesSubAdmin(adminSecret);
+         setAmbassadors(res.ambassadors);
+      } else {
+         const summaries = await fetchAmbassadorSummaries(adminSecret);
+         setAmbassadors(summaries);
+      }
     } catch (err: any) {
       addToast('error', err.message || 'Failed to load ambassadors');
     } finally {
@@ -40,11 +48,38 @@ export default function AmbassadorsView({ adminSecret, addToast }: AmbassadorsVi
   useEffect(() => { load(); }, []);
 
   const openDetail = async (id: string) => {
+    if (role === 'sub_admin') {
+      const amb = ambassadors.find(a => a.id === id);
+      if (amb) setPinModalAmbassador(amb);
+      return;
+    }
+    
     setSelectedId(id);
     setDetailLoading(true);
     const result = await fetchAmbassadorDetail(adminSecret, id);
     setDetail(result);
     setDetailLoading(false);
+  };
+
+  const handlePinSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pinModalAmbassador || !enteredPin) return;
+    setVerifyingPin(true);
+    try {
+       const result = await fetchAmbassadorDetailSubAdmin(adminSecret, pinModalAmbassador.id, enteredPin);
+       if ('error' in result) {
+          addToast('error', result.error);
+       } else {
+          setDetail(result as AmbassadorDetail);
+          setSelectedId(pinModalAmbassador.id);
+          setPinModalAmbassador(null);
+          setEnteredPin('');
+       }
+    } catch (err: any) {
+       addToast('error', err.message || 'Verification failed');
+    } finally {
+       setVerifyingPin(false);
+    }
   };
 
   const handleCreate = async () => {
@@ -57,7 +92,7 @@ export default function AmbassadorsView({ adminSecret, addToast }: AmbassadorsVi
     if (result.success) {
       addToast('success', `Ambassador ${form.full_name} created! Code: ${result.ambassador?.referral_code}`);
       setShowCreateModal(false);
-      setForm({ full_name: '', phone: '', email: '', pin: '', tier_label: 'Trial', monthly_pay: 0, notes: '' });
+      setForm({ full_name: '', phone: '', email: '', pin: '', notes: '' });
       load();
     } else {
       addToast('error', result.error || 'Failed to create ambassador');
@@ -210,6 +245,7 @@ export default function AmbassadorsView({ adminSecret, addToast }: AmbassadorsVi
               </div>
             )}
 
+            {role === 'admin' && (
             <div className="flex gap-3">
               <button onClick={() => amb && handleToggleStatus(amb)} className="px-4 py-2 text-xs font-bold rounded-lg border bg-white text-slate-600 border-slate-200 hover:bg-slate-50 cursor-pointer">
                 {amb?.status === 'active' ? 'Suspend' : 'Activate'} Ambassador
@@ -218,6 +254,7 @@ export default function AmbassadorsView({ adminSecret, addToast }: AmbassadorsVi
                 Delete Ambassador
               </button>
             </div>
+            )}
           </>
         )}
       </div>
@@ -235,9 +272,11 @@ export default function AmbassadorsView({ adminSecret, addToast }: AmbassadorsVi
           <button onClick={load} disabled={isLoading} className="px-4 py-2 text-xs font-bold rounded-lg border bg-white text-slate-600 border-slate-200 hover:bg-slate-50 flex items-center gap-2 cursor-pointer">
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-primary-blue' : ''}`} /> Refresh
           </button>
+          {role === 'admin' && (
           <button onClick={() => setShowCreateModal(true)} className="px-4 py-2 text-xs font-bold rounded-lg bg-primary-blue text-white flex items-center gap-2 cursor-pointer">
             <Plus className="w-3.5 h-3.5" /> Add Ambassador
           </button>
+          )}
         </div>
       </div>
 
@@ -278,7 +317,7 @@ export default function AmbassadorsView({ adminSecret, addToast }: AmbassadorsVi
             </div>
             <div className="flex items-center justify-between pt-3 border-t border-slate-100">
               <span className="font-mono text-xs font-bold text-primary-blue">{amb.referral_code}</span>
-              <span className="text-[10px] font-bold text-slate-500">{formatNaira(amb.current_tier_pay ?? 0)}/mo</span>
+              <span className="text-[10px] font-bold text-slate-500">{amb.tier_label || 'Trial'}</span>
             </div>
           </motion.div>
         ))}
@@ -296,15 +335,29 @@ export default function AmbassadorsView({ adminSecret, addToast }: AmbassadorsVi
               <input placeholder="Phone Number" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
               <input placeholder="Email (optional)" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
               <input placeholder="4-digit PIN for login" maxLength={4} value={form.pin} onChange={e => setForm({ ...form, pin: e.target.value.replace(/\D/g,'') })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
-              <select value={form.tier_label} onChange={e => setForm({ ...form, tier_label: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm">
-                {TIER_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-              <input type="number" placeholder="Monthly Pay (₦)" value={form.monthly_pay} onChange={e => setForm({ ...form, monthly_pay: Number(e.target.value) })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
               <textarea placeholder="Notes (optional)" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" rows={2} />
             </div>
             <button onClick={handleCreate} disabled={submitting} className="w-full mt-4 py-3 bg-primary-blue text-white font-bold rounded-xl text-sm cursor-pointer">
               {submitting ? 'Creating...' : 'Create Ambassador'}
             </button>
+          </motion.div>
+        </div>
+      )}
+
+      {pinModalAmbassador && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <div className="flex justify-between items-center mb-5">
+              <h3 className="font-bold text-slate-900">Enter PIN</h3>
+              <button onClick={() => { setPinModalAmbassador(null); setEnteredPin(''); }} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center cursor-pointer"><X className="w-4 h-4" /></button>
+            </div>
+            <p className="text-sm text-slate-500 mb-4">Enter {pinModalAmbassador.full_name}'s PIN to view their dashboard.</p>
+            <form onSubmit={handlePinSubmit}>
+              <input type="password" placeholder="4-digit PIN" maxLength={4} value={enteredPin} onChange={e => setEnteredPin(e.target.value.replace(/\D/g,''))} className="w-full px-4 py-3 border border-slate-200 rounded-xl text-center text-lg tracking-[1em] font-mono focus:outline-none focus:ring-2 focus:ring-primary-blue/20 focus:border-primary-blue transition-all" autoFocus />
+              <button type="submit" disabled={verifyingPin} className="w-full mt-4 py-3 bg-primary-blue text-white font-bold rounded-xl text-sm cursor-pointer">
+                {verifyingPin ? 'Verifying...' : 'Unlock Dashboard'}
+              </button>
+            </form>
           </motion.div>
         </div>
       )}

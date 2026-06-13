@@ -30,6 +30,9 @@ export default function App() {
   const [adminSecret, setAdminSecret] = useState<string | null>(() => {
     return sessionStorage.getItem('gigup_admin_secret');
   });
+  const [role, setRole] = useState<'admin' | 'sub_admin'>(() => {
+    return (sessionStorage.getItem('gigup_admin_role') as 'admin' | 'sub_admin') || 'admin';
+  });
 
   // Global Toast Lists
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -70,16 +73,20 @@ export default function App() {
   };
 
   // Login handler
-  const handleLoginSuccess = (secretToken: string) => {
+  const handleLoginSuccess = (secretToken: string, newRole: 'admin' | 'sub_admin') => {
     sessionStorage.setItem('gigup_admin_secret', secretToken);
+    sessionStorage.setItem('gigup_admin_role', newRole);
     setAdminSecret(secretToken);
+    setRole(newRole);
     setActiveTab('dashboard');
   };
 
   // Logout handler
   const handleLogout = () => {
     sessionStorage.removeItem('gigup_admin_secret');
+    sessionStorage.removeItem('gigup_admin_role');
     setAdminSecret(null);
+    setRole('admin');
     setStats(null);
     setRecentOrders([]);
     setRecentUsers([]);
@@ -200,6 +207,7 @@ export default function App() {
         pendingOrdersCount={stats?.pending_orders || 0}
         pendingWithdrawalsCount={pendingWithdrawalsCount}
         onLogout={handleLogout}
+        role={role}
       />
 
       {/* CORE SCREEN CONTENT SHELF */}
@@ -339,7 +347,7 @@ export default function App() {
               )}
 
               {activeTab === 'ambassadors' && (
-                <AmbassadorsView adminSecret={adminSecret} addToast={addToast} />
+                <AmbassadorsView adminSecret={adminSecret} addToast={addToast} role={role} />
               )}
 
               {activeTab === 'audit' && (

@@ -30,14 +30,15 @@ interface SidebarProps {
   pendingOrdersCount: number;
   pendingWithdrawalsCount: number;
   onLogout: () => void;
+  role?: 'admin' | 'sub_admin';
 }
 
-export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, pendingWithdrawalsCount, onLogout }: SidebarProps) {
+export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, pendingWithdrawalsCount, onLogout, role = 'admin' }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleSidebar = () => setIsOpen(!isOpen);
 
-  const menuItems = [
+  let menuItems = [
     { id: 'dashboard' as ActiveTab, label: 'Dashboard', icon: LayoutDashboard },
     { 
       id: 'orders' as ActiveTab, 
@@ -65,6 +66,10 @@ export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, p
     { id: 'plans' as ActiveTab, label: 'Plans', icon: Radio },
     { id: 'settings' as ActiveTab, label: 'Settings', icon: Settings },
   ];
+
+  if (role === 'sub_admin') {
+    menuItems = menuItems.filter(item => ['dashboard', 'orders', 'ambassadors'].includes(item.id));
+  }
 
   const handleTabClick = (tabId: ActiveTab) => {
     setActiveTab(tabId);

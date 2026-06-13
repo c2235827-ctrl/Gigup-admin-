@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
-import { checkSecret } from '../services/api';
+import { checkSecret, fetchAmbassadorSummariesSubAdmin } from '../services/api';
 
 interface LoginViewProps {
-  onLoginSuccess: (secret: string) => void;
+  onLoginSuccess: (secret: string, role: 'admin' | 'sub_admin') => void;
   addToast: (type: 'success' | 'error' | 'warning' | 'info', message: string) => void;
 }
 
@@ -12,23 +12,34 @@ export default function LoginView({ onLoginSuccess, addToast }: LoginViewProps) 
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [loginMode, setLoginMode] = useState<'admin' | 'staff'>('admin');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!password.trim()) {
-      setErrorMsg('Please enter the admin password');
+      setErrorMsg(`Please enter the ${loginMode === 'admin' ? 'admin' : 'staff'} password`);
       return;
     }
     setIsLoading(true);
     setErrorMsg('');
     try {
-      const isValid = await checkSecret(password);
-      if (isValid) {
-        addToast('success', 'Welcome back! Logged in successfully.');
-        onLoginSuccess(password);
+      if (loginMode === 'admin') {
+        const isValid = await checkSecret(password);
+        if (isValid) {
+          addToast('success', 'Welcome back! Logged in successfully.');
+          onLoginSuccess(password, 'admin');
+        } else {
+          setErrorMsg('Incorrect admin password. Please try again.');
+          addToast('error', 'Authentication failed. Wrong password.');
+        }
       } else {
-        setErrorMsg('Incorrect admin password. Please try again.');
-        addToast('error', 'Authentication failed. Wrong password.');
+        const res = await fetchAmbassadorSummariesSubAdmin(password);
+        if (res.role === 'sub_admin') {
+          addToast('success', 'Staff login successful.');
+          onLoginSuccess(password, 'sub_admin');
+        } else {
+          setErrorMsg('Authentication failed.');
+        }
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Connection error. Check your internet and try again.');
@@ -53,15 +64,29 @@ export default function LoginView({ onLoginSuccess, addToast }: LoginViewProps) 
               referrerPolicy="no-referrer" 
             />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">GigUp Nigeria Admin</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-white">GigUp Nigeria</h1>
           <p className="text-sm text-slate-400 mt-2">Operations & Management Dashboard</p>
         </div>
 
         <div className="bg-white rounded-xl shadow-xl p-8">
+          <div className="flex gap-4 mb-6">
+            <button
+              onClick={() => { setLoginMode('admin'); setPassword(''); setErrorMsg(''); }}
+              className={`flex-1 py-2 text-sm font-bold border-b-2 transition-colors ${loginMode === 'admin' ? 'border-primary-blue text-primary-blue' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+            >
+              Admin Login
+            </button>
+            <button
+              onClick={() => { setLoginMode('staff'); setPassword(''); setErrorMsg(''); }}
+              className={`flex-1 py-2 text-sm font-bold border-b-2 transition-colors ${loginMode === 'staff' ? 'border-primary-blue text-primary-blue' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+            >
+              Staff Login
+            </button>
+          </div>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
-                Admin Password
+                {loginMode === 'admin' ? 'Admin Password' : 'Staff Password'}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -71,7 +96,7 @@ export default function LoginView({ onLoginSuccess, addToast }: LoginViewProps) 
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setErrorMsg(''); }}
-                  placeholder="Enter admin password"
+                  placeholder={`Enter ${loginMode === 'admin' ? 'admin' : 'staff'} password`}
                   className="w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-blue/20 focus:border-primary-blue transition-all"
                   autoComplete="current-password"
                 />
