@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { LogOut, Copy, RefreshCw, Users, TrendingUp, CheckCircle, XCircle, DollarSign, LogIn, AlertCircle } from 'lucide-react';
-import { loginAmbassador, fetchAmbassadorDashboard } from './services/api';
+import { LogOut, Copy, RefreshCw, Users, TrendingUp, CheckCircle, XCircle, DollarSign, LogIn, AlertCircle, Settings, X } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { loginAmbassador, fetchAmbassadorDashboard, changeAmbassadorPin } from './services/api';
 import { Ambassador, AmbassadorDetail } from './types';
 import { formatNaira, getInitials } from './utils/formatters';
 
@@ -20,6 +21,33 @@ export default function AmbassadorApp() {
   const [detail, setDetail] = useState<AmbassadorDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [currentPinForm, setCurrentPinForm] = useState('');
+  const [newPinForm, setNewPinForm] = useState('');
+  const [confirmPinForm, setConfirmPinForm] = useState('');
+  const [pinChangeError, setPinChangeError] = useState('');
+  const [isChangingPin, setIsChangingPin] = useState(false);
+
+  const chartData = useMemo(() => {
+    if (!detail?.recent_orders) return [];
+    
+    const successfulOrders = detail.recent_orders.filter(o => o.status === 'success');
+    const monthlyCounts: Record<string, { sortKey: string; month: string; orders: number }> = {};
+    
+    successfulOrders.forEach(order => {
+      const date = new Date(order.created_at);
+      const sortKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const month = date.toLocaleString('default', { month: 'short', year: '2-digit' });
+      
+      if (!monthlyCounts[sortKey]) {
+        monthlyCounts[sortKey] = { sortKey, month, orders: 0 };
+      }
+      monthlyCounts[sortKey].orders += 1;
+    });
+
+    return Object.values(monthlyCounts).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+  }, [detail?.recent_orders]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -85,6 +113,42 @@ export default function AmbassadorApp() {
   const copyCode = (code: string) => {
     navigator.clipboard.writeText(code);
     showToast(`Referral code ${code} copied!`);
+  };
+
+  const handleChangePinSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+    setPinChangeError('');
+    if (newPinForm !== confirmPinForm) {
+      setPinChangeError('New PIN and Confirm PIN must match');
+      return;
+    }
+    if (newPinForm.length !== 4 || currentPinForm.length !== 4) {
+      setPinChangeError('PINs must be exactly 4 digits');
+      return;
+    }
+    if (currentPinForm === newPinForm) {
+      setPinChangeError('New PIN must differ from current PIN');
+      return;
+    }
+    
+    setIsChangingPin(true);
+    try {
+      const res = await changeAmbassadorPin(token, currentPinForm, newPinForm);
+      if (res.success) {
+        showToast(res.message || 'PIN updated successfully');
+        setShowPinModal(false);
+        setCurrentPinForm('');
+        setNewPinForm('');
+        setConfirmPinForm('');
+      } else {
+        setPinChangeError(res.error || 'Failed to change PIN');
+      }
+    } catch (err: any) {
+      setPinChangeError('Connection error. Please try again.');
+    } finally {
+      setIsChangingPin(false);
+    }
   };
 
   // ----------------------------------------------------
@@ -187,8 +251,16 @@ export default function AmbassadorApp() {
               </div>
             )}
             <button 
+              onClick={() => setShowPinModal(true)}
+              className="w-10 h-10 bg-slate-50 text-slate-500 hover:text-primary-blue hover:bg-blue-50 rounded-full flex flex-col items-center justify-center border border-slate-200"
+              title="Change PIN"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+            <button 
               onClick={handleLogout}
               className="w-10 h-10 bg-slate-50 text-slate-500 hover:text-danger hover:bg-red-50 rounded-full flex flex-col items-center justify-center border border-slate-200"
+              title="Logout"
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -235,6 +307,41 @@ export default function AmbassadorApp() {
                 <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
                   <div className="h-full bg-gradient-to-r from-primary-blue to-success rounded-full transition-all duration-1000"
                     style={{ width: `${Math.min(100, (detail.stats.qualified_signups / detail.stats.next_tier_at) * 100)}%` }} />
+                </div>
+              </div>
+            )}
+
+            {/* MONTHLY ORDER TRENDS */}
+            {chartData.length > 0 && (
+              <div className="bg-white rounded-2xl border border-slate-105 shadow-sm p-5 sm:p-6">
+                <div className="flex items-center mb-6">
+                  <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-primary-blue" /> Monthly Successful Orders
+                  </h3>
+                </div>
+                <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                      <XAxis 
+                        dataKey="month" 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fontSize: 12, fill: '#64748B', fontWeight: 600 }} 
+                        dy={10} 
+                      />
+                      <YAxis 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fontSize: 12, fill: '#64748B', fontWeight: 600 }} 
+                      />
+                      <Tooltip 
+                        cursor={{ fill: '#F1F5F9' }} 
+                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)', fontWeight: 'bold' }} 
+                      />
+                      <Bar dataKey="orders" fill="#3B7EF8" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
             )}
@@ -331,6 +438,78 @@ export default function AmbassadorApp() {
           </motion.div>
         )}
       </div>
+
+      {showPinModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="font-bold text-slate-900 text-lg">Change PIN</h3>
+              <button onClick={() => { setShowPinModal(false); setPinChangeError(''); }} className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <p className="text-sm text-slate-500 mb-6 bg-slate-50 p-3 rounded-xl border border-slate-100">
+              Choose a PIN only you know. The admin set your initial PIN — changing it here keeps your account private.
+            </p>
+
+            {pinChangeError && (
+              <div className="bg-red-50 text-danger text-sm p-3 rounded-xl mb-4 flex items-center gap-2 border border-red-100">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{pinChangeError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleChangePinSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Current PIN</label>
+                <input
+                  type="password"
+                  maxLength={4}
+                  value={currentPinForm}
+                  onChange={e => setCurrentPinForm(e.target.value.replace(/\D/g, ''))}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-primary-blue/20 focus:border-primary-blue transition-all"
+                  placeholder="••••"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">New PIN</label>
+                <input
+                  type="password"
+                  maxLength={4}
+                  value={newPinForm}
+                  onChange={e => setNewPinForm(e.target.value.replace(/\D/g, ''))}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-primary-blue/20 focus:border-primary-blue transition-all"
+                  placeholder="••••"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Confirm New PIN</label>
+                <input
+                  type="password"
+                  maxLength={4}
+                  value={confirmPinForm}
+                  onChange={e => setConfirmPinForm(e.target.value.replace(/\D/g, ''))}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-primary-blue/20 focus:border-primary-blue transition-all"
+                  placeholder="••••"
+                  required
+                />
+              </div>
+              
+              <button
+                type="submit"
+                disabled={isChangingPin || !currentPinForm || !newPinForm || !confirmPinForm}
+                className="w-full py-3.5 bg-primary-blue hover:bg-blue-600 text-white font-bold rounded-xl mt-6 flex items-center justify-center gap-2 transition-colors disabled:opacity-70"
+              >
+                {isChangingPin ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Settings className="w-5 h-5" />}
+                {isChangingPin ? 'Updating...' : 'Update PIN'}
+              </button>
+            </form>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

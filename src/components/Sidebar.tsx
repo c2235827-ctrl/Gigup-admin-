@@ -68,7 +68,7 @@ export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, p
   ];
 
   if (role === 'sub_admin') {
-    menuItems = menuItems.filter(item => ['dashboard', 'orders', 'ambassadors'].includes(item.id));
+    menuItems = menuItems.filter(item => ['orders', 'ambassadors'].includes(item.id));
   }
 
   const handleTabClick = (tabId: ActiveTab) => {

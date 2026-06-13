@@ -38,7 +38,10 @@ export default function App() {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   // Navigation and screen tab trackers
-  const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
+  const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
+    const savedRole = sessionStorage.getItem('gigup_admin_role');
+    return savedRole === 'sub_admin' ? 'ambassadors' : 'dashboard';
+  });
   const [initialPendingFilterActive, setInitialPendingFilterActive] = useState(false);
   const [initialBonusPendingFilterActive, setInitialBonusPendingFilterActive] = useState(false);
 
@@ -78,7 +81,7 @@ export default function App() {
     sessionStorage.setItem('gigup_admin_role', newRole);
     setAdminSecret(secretToken);
     setRole(newRole);
-    setActiveTab('dashboard');
+    setActiveTab(newRole === 'sub_admin' ? 'ambassadors' : 'dashboard');
   };
 
   // Logout handler
@@ -95,19 +98,19 @@ export default function App() {
 
   // Core Stats & Metrics Fetch Wrapper
   const fetchDashboardStats = async (isSilent = false) => {
-    if (!adminSecret) return;
+    if (!adminSecret || role !== 'admin') return;
     
     if (!isSilent) setIsLoadingStats(true);
     else setIsRefreshingStats(true);
 
     try {
       const [dashboardData, withdrawalsRes, pendingBonusesRes] = await Promise.all([
-        fetchStats(adminSecret),
-        fetchWithdrawals(adminSecret, 'pending').catch(err => {
+        fetchStats(adminSecret, role),
+        fetchWithdrawals(adminSecret, 'pending', role).catch(err => {
           console.warn('Graceful fallback for pending withdrawals load failure:', err);
           return { success: false, withdrawals: [] };
         }),
-        fetchOrders(adminSecret, 1, 50, 'pending', 'all', '', true).catch(err => {
+        fetchOrders(adminSecret, 1, 50, 'pending', 'all', '', true, '', role).catch(err => {
           console.warn('Graceful fallback for pending bonus orders load failure:', err);
           return { success: false, orders: [] };
         })
@@ -135,9 +138,31 @@ export default function App() {
       }
     } catch (err: any) {
       if (err.message === 'Unauthorized') {
-        // Clear stale session
-        handleLogout();
-        addToast('error', 'Session authentication expired. Please login again.');
+        if (role === 'sub_admin') {
+          // Sub-admins gracefully ignore full dashboard unauthorized drops
+          // to prevent log-out loop. We supply blank dummy stats.
+          setStats({
+            total_users: 0,
+            active_users: 0,
+            total_orders: 0,
+            pending_orders: 0,
+            total_revenue: 0,
+            net_revenue: 0,
+            total_cashback_given: 0,
+            wallet_balances: 0,
+            cashback_balances: 0,
+            users_with_balance: 0,
+            total_referrals: 0,
+            total_referral_bonus: 0,
+            kyc_verified_users: 0,
+            total_deposits: 0,
+            orders_by_network: {}
+          });
+        } else {
+          // Clear stale session
+          handleLogout();
+          addToast('error', 'Session authentication expired. Please login again.');
+        }
       } else {
         addToast('error', err.message || 'Connection lost reloading admin metrics.');
       }
@@ -149,7 +174,7 @@ export default function App() {
 
   // Load metrics when identity secret is verified or toggled
   useEffect(() => {
-    if (adminSecret) {
+    if (adminSecret && role === 'admin') {
       fetchDashboardStats(false);
 
       // Auto-refresh Stats every 60 seconds as commanded by UX instructions
@@ -167,7 +192,7 @@ export default function App() {
         clearInterval(refreshIntervalRef.current);
       }
     };
-  }, [adminSecret]);
+  }, [adminSecret, role]);
 
   // Handle routing commands between metrics cards and sheets
   const handleNavigateToOrders = (filterPending: boolean, filterBonusPending = false) => {
@@ -275,6 +300,7 @@ export default function App() {
               {activeTab === 'orders' && (
                 <OrdersView
                   adminSecret={adminSecret}
+                  role={role}
                   initialPendingFilter={initialPendingFilterActive}
                   initialBonusPendingFilter={initialBonusPendingFilterActive}
                   addToast={addToast}

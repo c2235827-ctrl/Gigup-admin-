@@ -17,6 +17,18 @@ function getHeaders(secret: string): Record<string, string> {
   };
 }
 
+// Sub-admins authenticate via x-sub-admin-secret instead of x-admin-secret.
+// Pass role='sub_admin' to endpoints that support both (e.g. admin-get-orders, ambassador-dashboard, admin-ambassadors).
+function getHeadersForRole(secret: string, role: 'admin' | 'sub_admin' = 'admin'): Record<string, string> {
+  if (role === 'sub_admin') {
+    return {
+      'x-sub-admin-secret': secret,
+      'Content-Type': 'application/json'
+    };
+  }
+  return getHeaders(secret);
+}
+
 export async function checkSecret(secret: string): Promise<boolean> {
   const res = await fetch(`${BASE_URL}/admin-stats`, {
     method: 'GET',
@@ -28,8 +40,8 @@ export async function checkSecret(secret: string): Promise<boolean> {
   throw new Error(`Server error (${res.status}): ${text}`);
 }
 
-export async function fetchStats(secret: string): Promise<DashboardData> {
-  const res = await fetch(`${BASE_URL}/admin-stats`, { headers: getHeaders(secret) });
+export async function fetchStats(secret: string, role: 'admin' | 'sub_admin' = 'admin'): Promise<DashboardData> {
+  const res = await fetch(`${BASE_URL}/admin-stats`, { headers: getHeadersForRole(secret, role) });
   if (!res.ok) {
     if (res.status === 401) throw new Error('Unauthorized');
     throw new Error(`Failed to load stats (${res.status})`);
@@ -61,7 +73,8 @@ export async function fetchOrders(
   network = 'all',
   search = '',
   amountZero = false,
-  userId = ''
+  userId = '',
+  role: 'admin' | 'sub_admin' = 'admin'
 ): Promise<{ orders: Order[]; pagination: { page: number; limit: number; total: number; pages: number } }> {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) });
   if (status && status !== 'all') params.set('status', status);
@@ -69,7 +82,7 @@ export async function fetchOrders(
   if (userId) params.set('user_id', userId);
   else if (search) params.set('search', search);
   if (amountZero) params.set('amount_zero', 'true');
-  const res = await fetch(`${BASE_URL}/admin-get-orders?${params}`, { headers: getHeaders(secret) });
+  const res = await fetch(`${BASE_URL}/admin-get-orders?${params}`, { headers: getHeadersForRole(secret, role) });
   if (!res.ok) {
     if (res.status === 401) throw new Error('Unauthorized');
     throw new Error('Failed to load orders');
@@ -160,10 +173,11 @@ export async function requeryOrder(
 
 export async function fetchWithdrawals(
   secret: string,
-  status: 'pending' | 'paid' | 'rejected'
+  status: 'pending' | 'paid' | 'rejected',
+  role: 'admin' | 'sub_admin' = 'admin'
 ): Promise<{ success: boolean; withdrawals: Withdrawal[] }> {
   const res = await fetch(`${BASE_URL}/admin-manage?section=withdrawals&status=${status}`, {
-    headers: getHeaders(secret)
+    headers: getHeadersForRole(secret, role)
   });
   if (!res.ok) {
     if (res.status === 401) throw new Error('Unauthorized');
@@ -484,3 +498,16 @@ export async function fetchAmbassadorDashboard(token: string, ambassadorId: stri
   if (!res.ok) return null;
   return await res.json();
 }
+
+export async function changeAmbassadorPin(token: string, currentPin: string, newPin: string): Promise<{ success: boolean; message?: string; error?: string }> {
+  const res = await fetch(`${BASE_URL}/ambassador-change-pin`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ current_pin: currentPin, new_pin: newPin }),
+  });
+  return await res.json();
+}
+

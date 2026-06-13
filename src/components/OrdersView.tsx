@@ -22,6 +22,7 @@ import { addAuditLog } from "../utils/auditLogger";
 
 interface OrdersViewProps {
   adminSecret: string;
+  role?: 'admin' | 'sub_admin';
   initialPendingFilter: boolean;
   initialBonusPendingFilter?: boolean;
   addToast: (
@@ -34,6 +35,7 @@ interface OrdersViewProps {
 
 export default function OrdersView({
   adminSecret,
+  role = 'admin',
   initialPendingFilter,
   initialBonusPendingFilter = false,
   addToast,
@@ -95,6 +97,8 @@ export default function OrdersView({
         queryNetwork,
         searchQuery,
         isBonusOnly,
+        '',
+        role
       );
       setOrders(result.orders || []);
       if (result.pagination) {
@@ -133,6 +137,10 @@ export default function OrdersView({
 
   const handleRequery = async (e: React.MouseEvent, order: Order) => {
     e.stopPropagation(); // Avoid opening the row detail modal
+    if (role === 'sub_admin') {
+      addToast("error", "You don't have permission to perform this action.");
+      return;
+    }
     if (!order.smedata_ref) {
       addToast(
         "error",
@@ -209,6 +217,10 @@ export default function OrdersView({
     order: Order,
   ) => {
     e.stopPropagation();
+    if (role === 'sub_admin') {
+      addToast("error", "You don't have permission to perform this action.");
+      return;
+    }
     if (!confirm(`Resend 1GB welcome data bonus to ${order.recipient_phone}?`))
       return;
     try {
