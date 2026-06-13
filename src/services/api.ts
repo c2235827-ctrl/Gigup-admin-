@@ -1,4 +1,4 @@
-import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary, InactiveAccount, UserStreakAdmin } from '../types';
+import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary, InactiveAccount, UserStreakAdmin, Ambassador, AmbassadorStats, AmbassadorDetail } from '../types';
 
 const BASE_URL = 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
 
@@ -398,5 +398,63 @@ export async function triggerScheduledNotification(
     headers: getHeaders(secret),
   });
   if (!res.ok) throw new Error('Failed to trigger notification');
+  return await res.json();
+}
+
+export async function fetchAmbassadorSummaries(secret: string): Promise<Ambassador[]> {
+  const res = await fetch(`${BASE_URL}/ambassador-dashboard`, { headers: getHeaders(secret) });
+  const data = await res.json();
+  return data.ambassadors ?? [];
+}
+
+export async function fetchAmbassadorDetail(secret: string, ambassadorId: string): Promise<AmbassadorDetail | null> {
+  const res = await fetch(`${BASE_URL}/ambassador-dashboard?ambassador_id=${ambassadorId}`, { headers: getHeaders(secret) });
+  if (!res.ok) return null;
+  return await res.json();
+}
+
+export async function createAmbassador(secret: string, payload: {
+  full_name: string; phone: string; email?: string; pin: string; tier_label?: string; monthly_pay?: number; notes?: string;
+}): Promise<{ success: boolean; ambassador?: Ambassador; error?: string }> {
+  const res = await fetch(`${BASE_URL}/admin-ambassadors`, {
+    method: 'POST', headers: getHeaders(secret),
+    body: JSON.stringify({ action: 'create', ...payload }),
+  });
+  return await res.json();
+}
+
+export async function updateAmbassador(secret: string, id: string, updates: Partial<Ambassador> & { pin?: string }): Promise<{ success: boolean; error?: string }> {
+  const res = await fetch(`${BASE_URL}/admin-ambassadors`, {
+    method: 'POST', headers: getHeaders(secret),
+    body: JSON.stringify({ action: 'update', id, ...updates }),
+  });
+  return await res.json();
+}
+
+export async function deleteAmbassador(secret: string, id: string): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE_URL}/admin-ambassadors`, {
+    method: 'POST', headers: getHeaders(secret),
+    body: JSON.stringify({ action: 'delete', id }),
+  });
+  return await res.json();
+}
+
+export async function loginAmbassador(phone: string, pin: string) {
+  const res = await fetch(`${BASE_URL}/ambassador-auth`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone, pin }),
+  });
+  return await res.json();
+}
+
+export async function fetchAmbassadorDashboard(token: string, ambassadorId: string): Promise<AmbassadorDetail | null> {
+  const res = await fetch(`${BASE_URL}/ambassador-dashboard?ambassador_id=${ambassadorId}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    }
+  });
+  if (!res.ok) return null;
   return await res.json();
 }

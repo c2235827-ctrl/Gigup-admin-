@@ -23,6 +23,7 @@ import ActivityView from './components/ActivityView';
 import PushView from './components/PushView';
 import InactiveAccountsView from './components/InactiveAccountsView';
 import StreaksView from './components/StreaksView';
+import AmbassadorsView from './components/AmbassadorsView';
 
 export default function App() {
   // Session Authentication State
@@ -335,6 +336,10 @@ export default function App() {
 
               {activeTab === 'streaks' && (
                 <StreaksView adminSecret={adminSecret} addToast={addToast} />
+              )}
+
+              {activeTab === 'ambassadors' && (
+                <AmbassadorsView adminSecret={adminSecret} addToast={addToast} />
               )}
 
               {activeTab === 'audit' && (

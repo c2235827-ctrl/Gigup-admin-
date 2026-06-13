@@ -240,6 +240,27 @@ export interface UserStreakAdmin {
   streak_reward_30_claimed: boolean;
 }
 
+export interface Ambassador {
+  id: string; full_name: string; phone: string; email: string | null;
+  referral_code: string; tier_label: string; monthly_pay: number;
+  status: 'active' | 'suspended'; notes: string | null; created_at: string;
+  total_signups?: number; qualified_signups?: number;
+  current_tier_pay?: number; next_tier_at?: number | null;
+}
+export interface AmbassadorStats {
+  total_signups: number; qualified_signups: number; total_orders: number;
+  successful_orders: number; failed_orders: number; total_volume: number;
+  current_tier_pay: number; current_tier_min: number;
+  next_tier_at: number | null; next_tier_pay: number | null; level2_referrals: number;
+}
+export interface AmbassadorDetail {
+  ambassador: { id: string; full_name: string; phone: string; referral_code: string; status: string };
+  stats: AmbassadorStats;
+  direct_referrals: Array<{ id: string; full_name: string; phone: string; qualified: boolean; wallet_balance: number; cashback_balance: number; created_at: string }>;
+  level2_referrals: Array<{ id: string; full_name: string; phone: string; first_topup_done: boolean; created_at: string; referred_by: string }>;
+  recent_orders: Array<{ user_id: string; amount: number; status: string; plan_name: string; network: string; created_at: string }>;
+}
+
 
 
 
