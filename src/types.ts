@@ -261,6 +261,40 @@ export interface AmbassadorDetail {
   recent_orders: Array<{ user_id: string; amount: number; status: string; plan_name: string; network: string; created_at: string }>;
 }
 
+export interface FinancialReport {
+  success: boolean;
+  period: { from: string; to: string };
+  orders: {
+    total: number;
+    successful: { count: number; total_amount: number; total_cashback_paid: number };
+    failed: { count: number; total_value: number; note: string };
+    pending: { count: number; total_amount_reserved: number; estimated_cashback_owed_on_fulfillment: number; estimated_net_profit_if_fulfilled: number };
+    queued_for_retry: { count: number; total_amount: number };
+  };
+  financials: {
+    gross_revenue: number;
+    cashback_paid_to_users: number;
+    welcome_bonus_absorbed: number;
+    total_expenses: number;
+    net_profit: number;
+  };
+  welcome_bonus: {
+    per_user_amount: number;
+    total_users: number;
+    total_committed: number;
+    already_spent_on_orders: number;
+    still_in_wallets: number;
+    breakdown: { users_full_unused: number; users_partially_used: number; users_fully_spent: number };
+    note: string;
+  };
+  smedata_funding: {
+    queued_orders_total: number;
+    recommended_topup: number;
+    note: string;
+  };
+}
+
+
 
 
 

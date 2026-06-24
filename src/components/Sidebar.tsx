@@ -19,10 +19,11 @@ import {
   Bell,
   Trash2,
   Flame,
-  Star
+  Star,
+  FileText
 } from 'lucide-react';
 
-export type ActiveTab = 'dashboard' | 'orders' | 'withdrawals' | 'users' | 'plans' | 'settings' | 'analytics' | 'export' | 'audit' | 'margins' | 'activity' | 'push' | 'inactive' | 'streaks' | 'ambassadors';
+export type ActiveTab = 'dashboard' | 'orders' | 'withdrawals' | 'users' | 'plans' | 'settings' | 'analytics' | 'export' | 'audit' | 'margins' | 'activity' | 'push' | 'inactive' | 'streaks' | 'ambassadors' | 'financial';
 
 interface SidebarProps {
   activeTab: ActiveTab;
@@ -53,6 +54,7 @@ export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, p
       badge: pendingWithdrawalsCount > 0 ? pendingWithdrawalsCount : undefined,
       badgeColor: 'bg-red-500 text-white font-bold'
     },
+    { id: 'financial' as ActiveTab, label: 'Financial Report', icon: FileText },
     { id: 'users' as ActiveTab, label: 'Users', icon: Users },
     { id: 'analytics' as ActiveTab, label: 'Analytics', icon: BarChart2 },
     { id: 'margins' as ActiveTab, label: 'Plan Margins', icon: TrendingUp },

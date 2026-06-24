@@ -1,4 +1,4 @@
-import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary, InactiveAccount, UserStreakAdmin, Ambassador, AmbassadorStats, AmbassadorDetail } from '../types';
+import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary, InactiveAccount, UserStreakAdmin, Ambassador, AmbassadorStats, AmbassadorDetail, FinancialReport } from '../types';
 
 const BASE_URL = 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
 
@@ -510,4 +510,33 @@ export async function changeAmbassadorPin(token: string, currentPin: string, new
   });
   return await res.json();
 }
+
+export async function fetchFinancialReport(
+  secret: string,
+  from?: string,
+  to?: string
+): Promise<FinancialReport> {
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  const res = await fetch(`${BASE_URL}/admin-financial-report?${params}`, {
+    headers: getHeaders(secret),
+  });
+  if (!res.ok) throw new Error('Failed to fetch financial report');
+  return await res.json();
+}
+
+export async function retryPendingOrders(secret: string): Promise<{
+  success: boolean;
+  summary: { total: number; fulfilled: number; still_pending: number; failed: number };
+  results: any[];
+}> {
+  const res = await fetch(`${BASE_URL}/retry-pending-orders`, {
+    method: 'POST',
+    headers: getHeaders(secret),
+  });
+  if (!res.ok) throw new Error('Failed to retry pending orders');
+  return await res.json();
+}
+
 
