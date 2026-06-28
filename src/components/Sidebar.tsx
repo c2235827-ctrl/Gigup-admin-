@@ -54,7 +54,7 @@ export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, p
       badge: pendingWithdrawalsCount > 0 ? pendingWithdrawalsCount : undefined,
       badgeColor: 'bg-red-500 text-white font-bold'
     },
-    { id: 'financial' as ActiveTab, label: 'Financial Report', icon: FileText },
+    { id: 'financial' as ActiveTab, label: 'Financial Summary', icon: TrendingUp },
     { id: 'users' as ActiveTab, label: 'Users', icon: Users },
     { id: 'analytics' as ActiveTab, label: 'Analytics', icon: BarChart2 },
     { id: 'margins' as ActiveTab, label: 'Plan Margins', icon: TrendingUp },

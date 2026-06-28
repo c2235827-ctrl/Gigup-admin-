@@ -24,7 +24,7 @@ import PushView from './components/PushView';
 import InactiveAccountsView from './components/InactiveAccountsView';
 import StreaksView from './components/StreaksView';
 import AmbassadorsView from './components/AmbassadorsView';
-import FinancialReportView from './components/FinancialReportView';
+import FinancialSummaryView from './components/FinancialSummaryView';
 
 export default function App() {
   // Session Authentication State
@@ -378,7 +378,7 @@ export default function App() {
               )}
 
               {activeTab === 'financial' && (
-                <FinancialReportView adminSecret={adminSecret} addToast={addToast} />
+                <FinancialSummaryView adminSecret={adminSecret} addToast={addToast} />
               )}
 
               {activeTab === 'audit' && (

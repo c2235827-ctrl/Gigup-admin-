@@ -261,37 +261,49 @@ export interface AmbassadorDetail {
   recent_orders: Array<{ user_id: string; amount: number; status: string; plan_name: string; network: string; created_at: string }>;
 }
 
-export interface FinancialReport {
-  success: boolean;
-  period: { from: string; to: string };
+export interface FinancialSummary {
+  generated_at: string;
   orders: {
+    successful: { count: number; revenue: number };
+    pending: { count: number; revenue: number };
+    failed: { count: number; total_value?: number; revenue?: number; total_amount?: number; value?: number };
     total: number;
-    successful: { count: number; total_amount: number; total_cashback_paid: number };
-    failed: { count: number; total_value: number; note: string };
-    pending: { count: number; total_amount_reserved: number; estimated_cashback_owed_on_fulfillment: number; estimated_net_profit_if_fulfilled: number };
-    queued_for_retry: { count: number; total_amount: number };
   };
-  financials: {
+  cashback: {
+    paid_on_successful_orders: number;
+    owed_on_pending_orders: number;
+  };
+  smedata: {
+    cost_of_successful_orders: number;
+    funding_needed_for_pending: number;
+    recommendation: string;
+  };
+  expenses: {
+    welcome_bonuses: { total: number; count: number };
+    cashback_paid: { total: number; count: number };
+    referral_rewards: { total: number; count: number };
+    streak_rewards: { total: number; count: number };
+    recovery_bonuses: { total: number; count: number };
+    total_all_expenses: number;
+  };
+  profit: {
     gross_revenue: number;
-    cashback_paid_to_users: number;
-    welcome_bonus_absorbed: number;
+    smedata_cost: number;
+    gross_profit: number;
     total_expenses: number;
     net_profit: number;
+    net_profit_margin_pct: number;
+    summary: string;
   };
-  welcome_bonus: {
-    per_user_amount: number;
-    total_users: number;
-    total_committed: number;
-    already_spent_on_orders: number;
-    still_in_wallets: number;
-    breakdown: { users_full_unused: number; users_partially_used: number; users_fully_spent: number };
-    note: string;
-  };
-  smedata_funding: {
-    queued_orders_total: number;
-    recommended_topup: number;
-    note: string;
-  };
+  pending_orders_detail: Array<{
+    id: string;
+    recipient_phone: string;
+    network: string;
+    plan_name: string;
+    amount: number;
+    created_at: string;
+    failure_reason: string | null;
+  }>;
 }
 
 
