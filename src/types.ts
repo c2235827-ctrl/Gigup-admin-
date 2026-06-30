@@ -264,9 +264,9 @@ export interface AmbassadorDetail {
 export interface FinancialSummary {
   generated_at: string;
   orders: {
-    successful: { count: number; revenue: number };
-    pending: { count: number; revenue: number };
-    failed: { count: number; total_value?: number; revenue?: number; total_amount?: number; value?: number };
+    successful: { count: number; revenue: number; label?: string };
+    pending: { count: number; revenue: number; label?: string };
+    failed: { count: number; total_value?: number; revenue?: number; total_amount?: number; value?: number; label?: string };
     total: number;
   };
   cashback: {
