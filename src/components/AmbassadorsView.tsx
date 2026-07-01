@@ -3,7 +3,8 @@ import { motion } from 'motion/react';
 import { Star, Plus, X, RefreshCw, ArrowLeft, Copy, TrendingUp, Users, CheckCircle, XCircle, DollarSign } from 'lucide-react';
 import {
   fetchAmbassadorSummaries, fetchAmbassadorDetail,
-  createAmbassador, updateAmbassador, deleteAmbassador, fetchAmbassadorSummariesSubAdmin, fetchAmbassadorDetailSubAdmin
+  createAmbassador, updateAmbassador, deleteAmbassador,
+  fetchAmbassadorSummariesSubAdmin, fetchAmbassadorDetailSubAdmin
 } from '../services/api';
 import { Ambassador, AmbassadorDetail } from '../types';
 import { formatNaira, getInitials } from '../utils/formatters';
@@ -24,6 +25,7 @@ export default function AmbassadorsView({ adminSecret, addToast, role = 'admin' 
   const [form, setForm] = useState({ full_name: '', phone: '', email: '', pin: '', notes: '' });
   const [submitting, setSubmitting] = useState(false);
 
+  // States for PIN modal
   const [pinModalAmbassador, setPinModalAmbassador] = useState<Ambassador | null>(null);
   const [enteredPin, setEnteredPin] = useState('');
   const [verifyingPin, setVerifyingPin] = useState(false);
@@ -53,7 +55,7 @@ export default function AmbassadorsView({ adminSecret, addToast, role = 'admin' 
       if (amb) setPinModalAmbassador(amb);
       return;
     }
-    
+
     setSelectedId(id);
     setDetailLoading(true);
     const result = await fetchAmbassadorDetail(adminSecret, id);
@@ -67,13 +69,15 @@ export default function AmbassadorsView({ adminSecret, addToast, role = 'admin' 
     setVerifyingPin(true);
     try {
        const result = await fetchAmbassadorDetailSubAdmin(adminSecret, pinModalAmbassador.id, enteredPin);
-       if ('error' in result) {
-          addToast('error', result.error);
-       } else {
+       if (result && 'error' in result) {
+          addToast('error', (result as any).error || 'Verification failed');
+       } else if (result) {
           setDetail(result as AmbassadorDetail);
           setSelectedId(pinModalAmbassador.id);
           setPinModalAmbassador(null);
           setEnteredPin('');
+       } else {
+          addToast('error', 'Failed to retrieve details');
        }
     } catch (err: any) {
        addToast('error', err.message || 'Verification failed');
@@ -343,7 +347,6 @@ export default function AmbassadorsView({ adminSecret, addToast, role = 'admin' 
           </motion.div>
         </div>
       )}
-
       {pinModalAmbassador && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">

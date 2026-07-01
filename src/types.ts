@@ -262,35 +262,28 @@ export interface AmbassadorDetail {
 }
 
 export interface FinancialSummary {
-  generated_at: string;
   orders: {
-    successful: { count: number; revenue: number; label?: string };
-    pending: { count: number; revenue: number; label?: string };
-    failed: { count: number; total_value?: number; revenue?: number; total_amount?: number; value?: number; label?: string };
+    successful: { count: number; revenue: number; label: string };
+    pending: { count: number; revenue: number };
+    failed: { count: number; total_value: number; label: string };
     total: number;
   };
-  cashback: {
-    paid_on_successful_orders: number;
-    owed_on_pending_orders: number;
-  };
-  smedata: {
-    cost_of_successful_orders: number;
-    funding_needed_for_pending: number;
-    recommendation: string;
-  };
+  cashback: { paid_on_successful_orders: number; owed_on_pending_orders: number };
+  smedata: { cost_of_successful_orders: number; funding_needed_for_pending: number; recommendation: string };
   expenses: {
-    welcome_bonuses: { total: number; count: number };
     cashback_paid: { total: number; count: number };
     referral_rewards: { total: number; count: number };
     streak_rewards: { total: number; count: number };
     recovery_bonuses: { total: number; count: number };
-    total_all_expenses: number;
+    welcome_vouchers_used: { total: number; count: number };
+    total_real_expenses: number;
   };
+  liabilities: { welcome_bonuses_issued: { total: number; count: number; note: string } };
   profit: {
     gross_revenue: number;
     smedata_cost: number;
     gross_profit: number;
-    total_expenses: number;
+    total_real_expenses: number;
     net_profit: number;
     net_profit_margin_pct: number;
     summary: string;
@@ -304,6 +297,53 @@ export interface FinancialSummary {
     created_at: string;
     failure_reason: string | null;
   }>;
+}
+
+export interface FinancialReport {
+  success: boolean;
+  period: { from: string; to: string };
+  orders: {
+    total: number;
+    successful: {
+      count: number;
+      total_amount: number;
+      total_cashback_paid: number;
+      by_provider?: {
+        smedata: { count: number; total_amount: number };
+        peyflex: { count: number; total_amount: number };
+      };
+    };
+    failed: { count: number; total_value: number; note: string };
+    pending: { count: number; total_amount_reserved: number; estimated_cashback_owed_on_fulfillment: number; estimated_net_profit_if_fulfilled: number };
+    queued_for_retry: { count: number; total_amount: number };
+  };
+  financials: {
+    gross_revenue: number;
+    cashback_paid_to_users: number;
+    welcome_bonus_absorbed: number;
+    total_expenses: number;
+    net_profit: number;
+  };
+  welcome_bonus: {
+    per_user_amount: number;
+    total_users: number;
+    total_committed: number;
+    already_spent_on_orders: number;
+    still_in_wallets: number;
+    breakdown: { users_full_unused: number; users_partially_used: number; users_fully_spent: number };
+  };
+  smedata_funding: {
+    queued_orders_total: number;
+    recommended_topup: number;
+    note: string;
+  };
+  provider_wallets: {
+    smedata:  { balance: number | null; status: 'ok' | 'low' | 'unavailable' };
+    peyflex:  { balance: number | null; status: 'ok' | 'low' | 'unavailable' };
+    combined_balance: number;
+    can_fulfill_queued_orders: boolean;
+    note: string;
+  };
 }
 
 

@@ -24,7 +24,7 @@ import PushView from './components/PushView';
 import InactiveAccountsView from './components/InactiveAccountsView';
 import StreaksView from './components/StreaksView';
 import AmbassadorsView from './components/AmbassadorsView';
-import FinancialSummaryView from './components/FinancialSummaryView';
+import FinancialReportView from './components/FinancialReportView';
 
 export default function App() {
   // Session Authentication State
@@ -34,15 +34,15 @@ export default function App() {
   const [role, setRole] = useState<'admin' | 'sub_admin'>(() => {
     return (sessionStorage.getItem('gigup_admin_role') as 'admin' | 'sub_admin') || 'admin';
   });
+  const [subAdminSecret, setSubAdminSecret] = useState<string | null>(() => {
+    return sessionStorage.getItem('gigup_sub_admin_secret');
+  });
 
   // Global Toast Lists
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   // Navigation and screen tab trackers
-  const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
-    const savedRole = sessionStorage.getItem('gigup_admin_role');
-    return savedRole === 'sub_admin' ? 'ambassadors' : 'dashboard';
-  });
+  const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [initialPendingFilterActive, setInitialPendingFilterActive] = useState(false);
   const [initialBonusPendingFilterActive, setInitialBonusPendingFilterActive] = useState(false);
 
@@ -78,28 +78,37 @@ export default function App() {
 
   // Login handler
   const handleLoginSuccess = (secretToken: string, newRole: 'admin' | 'sub_admin') => {
-    sessionStorage.setItem('gigup_admin_secret', secretToken);
     sessionStorage.setItem('gigup_admin_role', newRole);
-    setAdminSecret(secretToken);
     setRole(newRole);
-    setActiveTab(newRole === 'sub_admin' ? 'ambassadors' : 'dashboard');
+    if (newRole === 'sub_admin') {
+      sessionStorage.setItem('gigup_sub_admin_secret', secretToken);
+      setSubAdminSecret(secretToken);
+      setActiveTab('ambassadors');
+    } else {
+      sessionStorage.setItem('gigup_admin_secret', secretToken);
+      setAdminSecret(secretToken);
+      setActiveTab('dashboard');
+    }
   };
 
   // Logout handler
   const handleLogout = () => {
     sessionStorage.removeItem('gigup_admin_secret');
+    sessionStorage.removeItem('gigup_sub_admin_secret');
     sessionStorage.removeItem('gigup_admin_role');
     setAdminSecret(null);
+    setSubAdminSecret(null);
     setRole('admin');
     setStats(null);
     setRecentOrders([]);
     setRecentUsers([]);
+    setActiveTab('dashboard');
     addToast('info', 'Logged out successfully');
   };
 
   // Core Stats & Metrics Fetch Wrapper
   const fetchDashboardStats = async (isSilent = false) => {
-    if (!adminSecret || role !== 'admin') return;
+    if (!adminSecret) return;
     
     if (!isSilent) setIsLoadingStats(true);
     else setIsRefreshingStats(true);
@@ -139,31 +148,9 @@ export default function App() {
       }
     } catch (err: any) {
       if (err.message === 'Unauthorized') {
-        if (role === 'sub_admin') {
-          // Sub-admins gracefully ignore full dashboard unauthorized drops
-          // to prevent log-out loop. We supply blank dummy stats.
-          setStats({
-            total_users: 0,
-            active_users: 0,
-            total_orders: 0,
-            pending_orders: 0,
-            total_revenue: 0,
-            net_revenue: 0,
-            total_cashback_given: 0,
-            wallet_balances: 0,
-            cashback_balances: 0,
-            users_with_balance: 0,
-            total_referrals: 0,
-            total_referral_bonus: 0,
-            kyc_verified_users: 0,
-            total_deposits: 0,
-            orders_by_network: {}
-          });
-        } else {
-          // Clear stale session
-          handleLogout();
-          addToast('error', 'Session authentication expired. Please login again.');
-        }
+        // Clear stale session
+        handleLogout();
+        addToast('error', 'Session authentication expired. Please login again.');
       } else {
         addToast('error', err.message || 'Connection lost reloading admin metrics.');
       }
@@ -206,8 +193,10 @@ export default function App() {
     setActiveTab('users');
   };
 
+  const isAuthorized = role === 'admin' ? !!adminSecret : !!subAdminSecret;
+
   // If no session exists, render the stylized auth portal
-  if (!adminSecret) {
+  if (!isAuthorized) {
     return (
       <main id="auth-flow" className="min-h-screen font-sans bg-primary-dark">
         <LoginView onLoginSuccess={handleLoginSuccess} addToast={addToast} />
@@ -374,11 +363,11 @@ export default function App() {
               )}
 
               {activeTab === 'ambassadors' && (
-                <AmbassadorsView adminSecret={adminSecret} addToast={addToast} role={role} />
+                <AmbassadorsView adminSecret={role === 'sub_admin' ? (subAdminSecret || '') : (adminSecret || '')} addToast={addToast} role={role} />
               )}
 
               {activeTab === 'financial' && (
-                <FinancialSummaryView adminSecret={adminSecret} addToast={addToast} />
+                <FinancialReportView adminSecret={adminSecret} addToast={addToast} />
               )}
 
               {activeTab === 'audit' && (

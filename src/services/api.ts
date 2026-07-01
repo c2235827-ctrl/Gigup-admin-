@@ -1,4 +1,4 @@
-import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary, InactiveAccount, UserStreakAdmin, Ambassador, AmbassadorStats, AmbassadorDetail, FinancialSummary } from '../types';
+import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary, InactiveAccount, UserStreakAdmin, Ambassador, AmbassadorStats, AmbassadorDetail, FinancialSummary, FinancialReport } from '../types';
 
 const BASE_URL = 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
 
@@ -17,17 +17,7 @@ function getHeaders(secret: string): Record<string, string> {
   };
 }
 
-// Sub-admins authenticate via x-sub-admin-secret instead of x-admin-secret.
-// Pass role='sub_admin' to endpoints that support both (e.g. admin-get-orders, ambassador-dashboard, admin-ambassadors).
-function getHeadersForRole(secret: string, role: 'admin' | 'sub_admin' = 'admin'): Record<string, string> {
-  if (role === 'sub_admin') {
-    return {
-      'x-sub-admin-secret': secret,
-      'Content-Type': 'application/json'
-    };
-  }
-  return getHeaders(secret);
-}
+// Removed getHeadersForRole helper as sub_admin path is deleted.
 
 export async function checkSecret(secret: string): Promise<boolean> {
   const res = await fetch(`${BASE_URL}/admin-stats`, {
@@ -41,7 +31,7 @@ export async function checkSecret(secret: string): Promise<boolean> {
 }
 
 export async function fetchStats(secret: string, role: 'admin' | 'sub_admin' = 'admin'): Promise<DashboardData> {
-  const res = await fetch(`${BASE_URL}/admin-stats`, { headers: getHeadersForRole(secret, role) });
+  const res = await fetch(`${BASE_URL}/admin-stats`, { headers: getHeaders(secret) });
   if (!res.ok) {
     if (res.status === 401) throw new Error('Unauthorized');
     throw new Error(`Failed to load stats (${res.status})`);
@@ -82,7 +72,7 @@ export async function fetchOrders(
   if (userId) params.set('user_id', userId);
   else if (search) params.set('search', search);
   if (amountZero) params.set('amount_zero', 'true');
-  const res = await fetch(`${BASE_URL}/admin-get-orders?${params}`, { headers: getHeadersForRole(secret, role) });
+  const res = await fetch(`${BASE_URL}/admin-get-orders?${params}`, { headers: getHeaders(secret) });
   if (!res.ok) {
     if (res.status === 401) throw new Error('Unauthorized');
     throw new Error('Failed to load orders');
@@ -177,7 +167,7 @@ export async function fetchWithdrawals(
   role: 'admin' | 'sub_admin' = 'admin'
 ): Promise<{ success: boolean; withdrawals: Withdrawal[] }> {
   const res = await fetch(`${BASE_URL}/admin-manage?section=withdrawals&status=${status}`, {
-    headers: getHeadersForRole(secret, role)
+    headers: getHeaders(secret)
   });
   if (!res.ok) {
     if (res.status === 401) throw new Error('Unauthorized');
@@ -468,16 +458,6 @@ export async function fetchAmbassadorDetailSubAdmin(subAdminSecret: string, amba
   return await res.json();
 }
 
-export async function fetchAmbassadorSummariesSubAdminList(subAdminSecret: string): Promise<Ambassador[]> {
-  const res = await fetch(`${BASE_URL}/admin-ambassadors`, {
-    method: 'POST',
-    headers: { 'x-sub-admin-secret': subAdminSecret, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'list' }),
-  });
-  const data = await res.json();
-  return data.ambassadors ?? [];
-}
-
 
 export async function loginAmbassador(phone: string, pin: string) {
   const res = await fetch(`${BASE_URL}/ambassador-auth`, {
@@ -516,8 +496,7 @@ export async function fetchFinancialSummary(secret: string): Promise<FinancialSu
     headers: getHeaders(secret),
   });
   if (!res.ok) return null;
-  const data = await res.json();
-  return data.success ? data : null;
+  return await res.json();
 }
 
 export async function retryPendingOrders(secret: string): Promise<{
@@ -529,6 +508,19 @@ export async function retryPendingOrders(secret: string): Promise<{
     headers: getHeaders(secret),
   });
   if (!res.ok) throw new Error('Failed to retry pending orders');
+  return await res.json();
+}
+
+export async function fetchFinancialReport(
+  secret: string,
+  from?: string,
+  to?: string
+): Promise<FinancialReport> {
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  const res = await fetch(`${BASE_URL}/admin-financial-report?${params}`, { headers: getHeaders(secret) });
+  if (!res.ok) throw new Error('Failed to fetch financial report');
   return await res.json();
 }
 
