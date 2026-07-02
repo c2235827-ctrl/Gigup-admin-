@@ -1,4 +1,4 @@
-import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary, InactiveAccount, UserStreakAdmin, Ambassador, AmbassadorStats, AmbassadorDetail, FinancialSummary, FinancialReport } from '../types';
+import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary, InactiveAccount, UserStreakAdmin, Ambassador, AmbassadorStats, AmbassadorDetail, FinancialSummary, FinancialReport, AppRating, SurveyResponseItem, SurveyQuestion, FeedbackOverview } from '../types';
 
 const BASE_URL = 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
 
@@ -523,5 +523,53 @@ export async function fetchFinancialReport(
   if (!res.ok) throw new Error('Failed to fetch financial report');
   return await res.json();
 }
+
+export async function fetchFeedbackOverview(secret: string): Promise<FeedbackOverview | null> {
+  const res = await fetch(`${BASE_URL}/admin-survey-feedback?action=overview`, {
+    headers: getHeaders(secret),
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.success ? data : null;
+}
+
+export async function fetchSurveyQuestions(secret: string): Promise<SurveyQuestion[]> {
+  const res = await fetch(`${BASE_URL}/admin-survey-feedback?action=questions`, {
+    headers: getHeaders(secret),
+  });
+  const data = await res.json();
+  return data.questions ?? [];
+}
+
+export async function createSurveyQuestion(
+  secret: string,
+  payload: { question_text: string; question_type: string; options?: string[] }
+): Promise<{ success: boolean; question?: SurveyQuestion }> {
+  const res = await fetch(`${BASE_URL}/admin-survey-feedback?action=questions`, {
+    method: 'POST',
+    headers: getHeaders(secret),
+    body: JSON.stringify(payload),
+  });
+  return await res.json();
+}
+
+export async function toggleSurveyQuestion(secret: string, id: string, is_active: boolean): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE_URL}/admin-survey-feedback?action=questions`, {
+    method: 'PATCH',
+    headers: getHeaders(secret),
+    body: JSON.stringify({ id, is_active }),
+  });
+  return await res.json();
+}
+
+export async function deleteSurveyQuestion(secret: string, id: string): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE_URL}/admin-survey-feedback?action=questions`, {
+    method: 'DELETE',
+    headers: getHeaders(secret),
+    body: JSON.stringify({ id }),
+  });
+  return await res.json();
+}
+
 
 

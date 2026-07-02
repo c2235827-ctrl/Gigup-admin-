@@ -346,7 +346,41 @@ export interface FinancialReport {
   };
 }
 
+export interface AppRating {
+  stars: number;
+  comment: string | null;
+  cycle_week: string;
+  created_at: string;
+  users: { full_name: string; phone: string };
+}
 
+export interface SurveyResponseItem {
+  answer_text: string;
+  created_at: string;
+  users: { full_name: string; phone: string };
+  survey_questions: { question_text: string; question_type: string };
+}
 
+export interface SurveyQuestion {
+  id: string;
+  question_text: string;
+  question_type: 'text' | 'multiple_choice' | 'rating';
+  options: string[] | null;
+  is_active: boolean;
+  created_at: string;
+}
 
-
+export interface FeedbackOverview {
+  ratings_summary: {
+    average_rating: string | null;
+    total_ratings: number;
+    breakdown: { star: number; count: number }[];
+  };
+  recent_ratings: AppRating[];
+  recent_survey_responses: SurveyResponseItem[];
+  survey_stats: {
+    total_responses: number;
+    total_completed_surveys: number;
+    total_dismissed: number;
+  };
+}
