@@ -1,4 +1,4 @@
-import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary, InactiveAccount, UserStreakAdmin, Ambassador, AmbassadorStats, AmbassadorDetail, FinancialSummary, FinancialReport, AppRating, SurveyResponseItem, SurveyQuestion, FeedbackOverview } from '../types';
+import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary, InactiveAccount, UserStreakAdmin, Ambassador, AmbassadorStats, AmbassadorDetail, FinancialSummary, FinancialReport, AppRating, SurveyResponseItem, SurveyQuestion, FeedbackOverview, RechargeCardStats, RechargeCardConfig, RechargeCardSubscription, RechargeCardOrder, ReconciliationItem, RechargeCardOverview, PeyflexRate } from '../types';
 
 const BASE_URL = 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
 
@@ -570,6 +570,62 @@ export async function deleteSurveyQuestion(secret: string, id: string): Promise<
   });
   return await res.json();
 }
+
+export async function fetchRechargeCardOverview(secret: string): Promise<RechargeCardOverview | null> {
+  const res = await fetch(`${BASE_URL}/admin-recharge-cards`, {
+    method: 'POST', headers: getHeaders(secret),
+    body: JSON.stringify({ action: 'overview' }),
+  });
+  const data = await res.json();
+  return data.success ? data : null;
+}
+
+export async function updateRechargeCardPricing(secret: string, updates: Partial<{
+  weekly_price: number; weekly_batches: number; monthly_price: number;
+  monthly_batches: number; markup_per_card: number; max_per_batch: number;
+}>): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE_URL}/admin-recharge-cards`, {
+    method: 'POST', headers: getHeaders(secret),
+    body: JSON.stringify({ action: 'update_pricing', ...updates }),
+  });
+  return await res.json();
+}
+
+export async function updateRechargeCardConfig(secret: string, updates: Partial<{
+  peyflex_api_token: string; peyflex_account_pin: string; enabled: boolean; account_tier: string;
+}>): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE_URL}/admin-recharge-cards`, {
+    method: 'POST', headers: getHeaders(secret),
+    body: JSON.stringify({ action: 'update_config', ...updates }),
+  });
+  return await res.json();
+}
+
+export async function resolveReconciliation(secret: string, id: string, status: string, notes?: string): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE_URL}/admin-recharge-cards`, {
+    method: 'POST', headers: getHeaders(secret),
+    body: JSON.stringify({ action: 'resolve_reconciliation', id, status, notes }),
+  });
+  return await res.json();
+}
+
+export async function fetchPeyflexRateCard(secret: string): Promise<PeyflexRate[]> {
+  const res = await fetch(`${BASE_URL}/admin-recharge-cards`, {
+    method: 'POST', headers: getHeaders(secret),
+    body: JSON.stringify({ action: 'get_rate_card' }),
+  });
+  const data = await res.json();
+  return data.rates ?? [];
+}
+
+export async function updatePeyflexRate(secret: string, id: string, api_user_cost?: number, top_reseller_cost?: number): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE_URL}/admin-recharge-cards`, {
+    method: 'POST', headers: getHeaders(secret),
+    body: JSON.stringify({ action: 'update_rate', id, api_user_cost, top_reseller_cost }),
+  });
+  return await res.json();
+}
+
 
 
 

@@ -26,6 +26,7 @@ import StreaksView from './components/StreaksView';
 import AmbassadorsView from './components/AmbassadorsView';
 import FinancialReportView from './components/FinancialReportView';
 import FeedbackView from './components/FeedbackView';
+import RechargeCardsView from './components/RechargeCardsView';
 
 export default function App() {
   // Session Authentication State
@@ -373,6 +374,10 @@ export default function App() {
 
               {activeTab === 'feedback' && (
                 <FeedbackView adminSecret={adminSecret || ''} addToast={addToast} />
+              )}
+
+              {activeTab === 'recharge_cards' && (
+                <RechargeCardsView adminSecret={adminSecret || ''} addToast={addToast} />
               )}
 
               {activeTab === 'audit' && (

@@ -384,3 +384,83 @@ export interface FeedbackOverview {
     total_dismissed: number;
   };
 }
+
+export interface RechargeCardStats {
+  active_subscriptions: number;
+  active_weekly: number;
+  active_monthly: number;
+  total_orders: number;
+  success_orders: number;
+  failed_or_review_orders: number;
+  success_rate_pct: number;
+  total_peyflex_spend: number;
+  total_card_markup_profit: number;
+  total_subscription_revenue: number;
+  total_combined_profit: number;
+  unresolved_reconciliation_amount: number;
+  unresolved_reconciliation_count: number;
+  pending_review_count: number;
+  pending_review_total_amount: number;
+}
+
+export interface RechargeCardConfig {
+  weekly_price: number;
+  weekly_batches: number;
+  monthly_price: number;
+  monthly_batches: number;
+  max_per_batch: number;
+  markup_per_card: number;
+  enabled: boolean;
+  account_tier: 'api_user' | 'top_reseller';
+  token_configured: boolean;
+  pin_configured: boolean;
+}
+
+export interface RechargeCardSubscription {
+  id: string;
+  plan_type: 'weekly' | 'monthly';
+  price_paid: number;
+  status: string;
+  starts_at: string;
+  expires_at: string;
+  users: { full_name: string; phone: string };
+}
+
+export interface RechargeCardOrder {
+  id: string;
+  network: string;
+  face_value: number;
+  quantity_ordered: number;
+  quantity_delivered: number;
+  total_charged: number;
+  gigup_profit: number;
+  status: string;
+  created_at: string;
+  users: { full_name: string; phone: string };
+}
+
+export interface ReconciliationItem {
+  id: string;
+  order_id: string;
+  amount_charged_but_undelivered: number;
+  status: string;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface RechargeCardOverview {
+  stats: RechargeCardStats;
+  config: RechargeCardConfig;
+  recent_subscriptions: RechargeCardSubscription[];
+  recent_orders: RechargeCardOrder[];
+  unresolved_reconciliation: ReconciliationItem[];
+}
+
+export interface PeyflexRate {
+  id: string;
+  network: string;
+  face_value: number;
+  api_user_cost: number;
+  top_reseller_cost: number;
+}
+
