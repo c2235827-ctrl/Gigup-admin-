@@ -268,6 +268,16 @@ export interface FinancialSummary {
     failed: { count: number; total_value: number; label: string };
     total: number;
   };
+  recharge_cards?: {
+    successful_orders: number;
+    under_review_orders: number;
+    processing_orders: number;
+    revenue: number;
+    peyflex_cost: number;
+    card_markup_profit: number;
+    subscription_revenue: number;
+    total_profit: number;
+  };
   cashback: { paid_on_successful_orders: number; owed_on_pending_orders: number };
   smedata: { cost_of_successful_orders: number; funding_needed_for_pending: number; recommendation: string };
   expenses: {
@@ -286,6 +296,9 @@ export interface FinancialSummary {
     total_real_expenses: number;
     net_profit: number;
     net_profit_margin_pct: number;
+    combined_gross_revenue?: number;
+    combined_net_profit?: number;
+    combined_net_profit_margin_pct?: number;
     summary: string;
   };
   pending_orders_detail: Array<{
@@ -462,5 +475,15 @@ export interface PeyflexRate {
   face_value: number;
   api_user_cost: number;
   top_reseller_cost: number;
+}
+
+export interface DenominationBreakdownItem {
+  network: string;
+  face_value: number;
+  orders_count: number;
+  total_delivered: number;
+  total_cost: number;
+  total_revenue: number;
+  profit: number;
 }
 

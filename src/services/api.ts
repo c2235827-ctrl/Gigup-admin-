@@ -1,4 +1,4 @@
-import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary, InactiveAccount, UserStreakAdmin, Ambassador, AmbassadorStats, AmbassadorDetail, FinancialSummary, FinancialReport, AppRating, SurveyResponseItem, SurveyQuestion, FeedbackOverview, RechargeCardStats, RechargeCardConfig, RechargeCardSubscription, RechargeCardOrder, ReconciliationItem, RechargeCardOverview, PeyflexRate } from '../types';
+import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary, InactiveAccount, UserStreakAdmin, Ambassador, AmbassadorStats, AmbassadorDetail, FinancialSummary, FinancialReport, AppRating, SurveyResponseItem, SurveyQuestion, FeedbackOverview, RechargeCardStats, RechargeCardConfig, RechargeCardSubscription, RechargeCardOrder, ReconciliationItem, RechargeCardOverview, PeyflexRate, DenominationBreakdownItem } from '../types';
 
 const BASE_URL = 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
 
@@ -624,6 +624,16 @@ export async function updatePeyflexRate(secret: string, id: string, api_user_cos
     body: JSON.stringify({ action: 'update_rate', id, api_user_cost, top_reseller_cost }),
   });
   return await res.json();
+}
+
+export async function fetchRechargeCardSpendBreakdown(secret: string): Promise<DenominationBreakdownItem[]> {
+  const res = await fetch(`${BASE_URL}/admin-recharge-cards`, {
+    method: 'POST',
+    headers: getHeaders(secret),
+    body: JSON.stringify({ action: 'spend_breakdown' }),
+  });
+  const data = await res.json();
+  return data.breakdown ?? [];
 }
 
 

@@ -369,7 +369,7 @@ export default function App() {
               )}
 
               {activeTab === 'financial' && (
-                <FinancialReportView adminSecret={adminSecret} addToast={addToast} />
+                <FinancialReportView adminSecret={adminSecret} addToast={addToast} setActiveTab={setActiveTab} />
               )}
 
               {activeTab === 'feedback' && (
