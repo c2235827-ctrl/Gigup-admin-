@@ -239,7 +239,8 @@ export default function PlansView({ adminSecret, addToast }: PlansViewProps) {
                 <th className="px-6 py-4">Package Name</th>
                 <th className="px-6 py-4 text-center">Size Tag</th>
                 <th className="px-6 py-4 text-right">Price (₦)</th>
-                <th className="px-6 py-4">SMEDATA Plan ID</th>
+                <th className="px-6 py-4">Primary Provider</th>
+                <th className="px-6 py-4">Provider Codes</th>
                 <th className="px-6 py-4">Validity</th>
                 <th className="px-6 py-4 text-center">Status</th>
                 <th className="px-6 py-4 text-center">Actions</th>
@@ -253,6 +254,7 @@ export default function PlansView({ adminSecret, addToast }: PlansViewProps) {
                     <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-8 mx-auto" /></td>
                     <td className="px-6 py-4 text-right"><div className="h-4 bg-slate-100 rounded w-16 ml-auto" /></td>
                     <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-20" /></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-24" /></td>
                     <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-16" /></td>
                     <td className="px-6 py-4"><div className="h-6 bg-slate-100 rounded-full w-12 mx-auto" /></td>
                     <td className="px-6 py-4"><div className="h-8 bg-slate-100 rounded-lg w-10 mx-auto" /></td>
@@ -260,7 +262,7 @@ export default function PlansView({ adminSecret, addToast }: PlansViewProps) {
                 ))
               ) : filteredPlans.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
                     No VTU plans added for {activeTab}. Click "Add Custom Plan" to create one.
                   </td>
                 </tr>
@@ -280,8 +282,23 @@ export default function PlansView({ adminSecret, addToast }: PlansViewProps) {
                         {formatNaira(plan.price)}
                       </strong>
                     </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-primary-blue uppercase border border-blue-100">
+                          {plan.primary_provider || 'smedata'}
+                        </span>
+                        {plan.peyflex_plan_code && plan.smedata_plan_id && (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                            dual-provider
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-6 py-4 font-mono text-slate-600 font-medium">
-                      {plan.smedata_plan_id}
+                      <div className="space-y-0.5 text-[10px]">
+                        <div>SMEData: <span className="font-semibold text-slate-900">{plan.smedata_plan_id || '—'}</span></div>
+                        <div>Peyflex: <span className="font-semibold text-slate-900">{plan.peyflex_plan_code || '—'}</span></div>
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-slate-600 font-medium flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5 text-slate-400" />

@@ -7,7 +7,9 @@ export const SETTING_LABELS: Record<string, { label: string; desc: string }> = {
   min_topup: { label: 'Minimum Top-Up (₦)', desc: 'Minimum amount required to fund a wallet' },
   signup_bonus_mb: { label: 'Signup Bonus (MB)', desc: 'Free data in MB given to users on registration' },
   referral_bonus_mb: { label: 'Referral Bonus (MB)', desc: 'Bonus data in MB awarded to both referrer and referee' },
-  min_cashback_withdrawal: { label: 'Min Cashback Withdrawal (₦)', desc: 'Minimum cashback balance required to request a bank withdrawal' }
+  min_cashback_withdrawal: { label: 'Min Cashback Withdrawal (₦)', desc: 'Minimum cashback balance required to request a bank withdrawal' },
+  smedata_data_enabled: { label: 'SMEData plans enabled', desc: 'Enables routing and visibility for plans provided by SMEData.' },
+  peyflex_data_enabled: { label: 'Peyflex plans enabled', desc: 'Enables routing and visibility for plans provided by Peyflex.' }
 };
 
 function getHeaders(secret: string): Record<string, string> {

@@ -117,6 +117,28 @@ export default function SettingsView({ adminSecret, addToast }: SettingsViewProp
     }
   };
 
+  const handleToggleSetting = async (key: string, currentValue: string) => {
+    const nextValue = currentValue === 'true' ? 'false' : 'true';
+    const readableLabel = SETTING_LABELS[key as keyof typeof SETTING_LABELS] || key;
+    setIsLoading(true);
+    try {
+      const outcome = await updateAppSetting(adminSecret, key, nextValue);
+      if (outcome.success) {
+        addToast('success', `Setting "${readableLabel}" updated to ${nextValue === 'true' ? 'enabled' : 'disabled'}!`);
+        addAuditLog('setting', 'update_setting', `Successfully toggled app setting "${readableLabel}" (${key}) to ${nextValue}`, 'success');
+        loadSettings(); // Reload rows
+      } else {
+        addToast('error', outcome.message || 'Error saving configuration.');
+        addAuditLog('setting', 'update_setting', `Failed to toggle app setting "${readableLabel}" (${key}) to ${nextValue}: ${outcome.message}`, 'failed');
+      }
+    } catch (err: any) {
+      addToast('error', err.message || 'Failed to sync settings database.');
+      addAuditLog('setting', 'update_setting', `Error while attempting to toggle app setting "${readableLabel}" (${key}): ${err.message || err}`, 'failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSaveGateway = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!flwSecretKey.trim() || !flwPublicKey.trim()) {
@@ -313,7 +335,79 @@ export default function SettingsView({ adminSecret, addToast }: SettingsViewProp
         )}
       </motion.div>
 
-      <div className="border-t border-slate-105 my-2 pt-4">
+      {/* DATA PROVIDER ROUTINGS CARD */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white rounded-xl border border-slate-105 shadow-geometric p-6 mt-6"
+      >
+        <div className="flex items-center gap-2.5 mb-5 pb-3 border-b border-slate-50">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+            <Database className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-slate-900">Data Provider Routings</h2>
+            <p className="text-xs text-text-muted mt-0.5">Control dynamic routing of active carrier networks and providers</p>
+          </div>
+        </div>
+
+        {/* Warning label requested by the user */}
+        <div className="p-3.5 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-2.5 text-amber-800 text-xs leading-relaxed mb-6">
+          <AlertTriangle className="w-4.5 h-4.5 text-amber-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-bold mb-0.5 text-amber-900">Provider Routing Notice</p>
+            <p>Disabling a provider hides its plans and stops routing to it. Plans with no available provider show as unavailable.</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* SMEData plans enabled Toggle */}
+          <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-205 rounded-xl">
+            <div className="space-y-0.5">
+              <span className="text-sm font-bold text-slate-900">SMEData plans enabled</span>
+              <p className="text-[11px] text-text-muted">key: smedata_data_enabled</p>
+            </div>
+            <button
+              onClick={() => {
+                const setting = settings.find(s => s.key === 'smedata_data_enabled');
+                const val = setting?.value ?? 'true';
+                handleToggleSetting('smedata_data_enabled', val);
+              }}
+              className={`relative inline-flex items-center h-5 w-9 rounded-full transition-colors focus:outline-none cursor-pointer ${
+                (settings.find(s => s.key === 'smedata_data_enabled')?.value ?? 'true') === 'true' ? 'bg-success' : 'bg-slate-200'
+              }`}
+            >
+              <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${
+                (settings.find(s => s.key === 'smedata_data_enabled')?.value ?? 'true') === 'true' ? 'translate-x-4.5' : 'translate-x-0.5'
+              }`} />
+            </button>
+          </div>
+
+          {/* Peyflex plans enabled Toggle */}
+          <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-205 rounded-xl">
+            <div className="space-y-0.5">
+              <span className="text-sm font-bold text-slate-900">Peyflex plans enabled</span>
+              <p className="text-[11px] text-text-muted">key: peyflex_data_enabled</p>
+            </div>
+            <button
+              onClick={() => {
+                const setting = settings.find(s => s.key === 'peyflex_data_enabled');
+                const val = setting?.value ?? 'true';
+                handleToggleSetting('peyflex_data_enabled', val);
+              }}
+              className={`relative inline-flex items-center h-5 w-9 rounded-full transition-colors focus:outline-none cursor-pointer ${
+                (settings.find(s => s.key === 'peyflex_data_enabled')?.value ?? 'true') === 'true' ? 'bg-success' : 'bg-slate-200'
+              }`}
+            >
+              <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${
+                (settings.find(s => s.key === 'peyflex_data_enabled')?.value ?? 'true') === 'true' ? 'translate-x-4.5' : 'translate-x-0.5'
+              }`} />
+            </button>
+          </div>
+        </div>
+      </motion.div>
+
+      <div className="border-t border-slate-105 my-2 pt-6">
         <h2 className="text-base font-bold text-slate-900 mb-1">Operational Config Keys</h2>
         <p className="text-xs text-text-muted mb-4">Core platform threshold values, fees and sign-up rewards</p>
       </div>
@@ -336,8 +430,10 @@ export default function SettingsView({ adminSecret, addToast }: SettingsViewProp
             No active configuration keys found in the system.
           </div>
         ) : (
-          settings.map((setting) => {
-            const isEditing = editingKey === setting.key;
+          settings
+            .filter((s) => s.key !== 'smedata_data_enabled' && s.key !== 'peyflex_data_enabled')
+            .map((setting) => {
+              const isEditing = editingKey === setting.key;
             const isSaving = isSavingKey === setting.key;
             const icon = getSettingIcon(setting.key);
 

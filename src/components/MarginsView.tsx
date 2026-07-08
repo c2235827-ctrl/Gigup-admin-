@@ -1,7 +1,7 @@
 import { useState, useEffect, Fragment } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  TrendingUp, TrendingDown, RefreshCw, AlertTriangle, DollarSign, Gift, Percent
+  TrendingUp, TrendingDown, RefreshCw, AlertTriangle, DollarSign, Gift, Percent, Database
 } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
@@ -74,6 +74,10 @@ export default function MarginsView({ adminSecret, addToast }: MarginsViewProps)
   // For the chart — only plans with sales
   const chartPlans = filteredPlans
     .filter(p => p.units_sold > 0)
+    .map(p => ({
+      ...p,
+      total_provider_cost: p.total_provider_cost ?? p.total_smedata_cost,
+    }))
     .sort((a, b) => b.total_net_profit - a.total_net_profit)
     .slice(0, 15);
 
@@ -138,11 +142,36 @@ export default function MarginsView({ adminSecret, addToast }: MarginsViewProps)
             </motion.div>
           )}
 
+          {/* ZERO MARGIN WARNING BANNER */}
+          {((data.summary.zero_margin_plans_count ?? 0) > 0 || (data.zero_margin_plans?.length ?? 0) > 0) && (
+            <motion.div variants={cardVariants}
+              className="bg-red-50 border-2 border-red-400 rounded-xl p-4 flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-danger shrink-0 mt-0.5 animate-pulse" />
+              <div>
+                <h4 className="text-sm font-black text-danger mb-1">
+                  ⚠️ {data.summary.zero_margin_plans_count ?? data.zero_margin_plans?.length} plan(s) selling at zero profit!
+                </h4>
+                <p className="text-xs text-red-600">
+                  These plans have no markup applied — every sale earns ₦0. Review immediately.
+                </p>
+                {data.zero_margin_plans && data.zero_margin_plans.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {data.zero_margin_plans.map(p => (
+                      <span key={p.id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-100 text-red-700 text-[10px] font-bold rounded-lg border border-red-200">
+                        {p.plan_name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
           {/* SUMMARY CARDS */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {[
               { label: 'Total Revenue', value: formatNaira(data.summary.overall_total_revenue), color: 'text-primary-blue', bg: 'bg-blue-50', icon: <DollarSign className="w-5 h-5" />, subtitle: 'Gross incoming sales' },
-              { label: 'SMEData Cost', value: formatNaira(data.summary.overall_total_smedata_cost), color: 'text-warning', bg: 'bg-amber-50', icon: <TrendingDown className="w-5 h-5" />, subtitle: 'Total paid to SMEData' },
+              { label: 'Provider Cost', value: formatNaira(data.summary.overall_total_provider_cost ?? data.summary.overall_total_smedata_cost), color: 'text-warning', bg: 'bg-amber-50', icon: <TrendingDown className="w-5 h-5" />, subtitle: 'Total paid to provider' },
               { label: 'Gross Markup', value: formatNaira(data.summary.overall_total_gross_markup), color: 'text-purple-500', bg: 'bg-purple-50', icon: <TrendingUp className="w-5 h-5" />, subtitle: 'What we added on top' },
               { label: 'Cashback Paid Out', value: formatNaira(data.summary.overall_total_cashback), color: 'text-orange-500', bg: 'bg-orange-50', icon: <Gift className="w-5 h-5" />, subtitle: 'Given back to customers' },
               { label: 'Net Profit', value: formatNaira(data.summary.overall_total_net_profit), color: 'text-success', bg: 'bg-green-50', icon: <TrendingUp className="w-5 h-5" />, subtitle: 'What stays with us', large: true },
@@ -191,8 +220,8 @@ export default function MarginsView({ adminSecret, addToast }: MarginsViewProps)
                       <span className="font-mono font-bold text-primary-blue">{formatNaira(net.total_revenue)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-500">SMEData Cost</span>
-                      <span className="font-mono font-bold text-warning">{formatNaira(net.total_smedata_cost)}</span>
+                      <span className="text-slate-500">Provider Cost</span>
+                      <span className="font-mono font-bold text-warning">{formatNaira(net.total_provider_cost ?? net.total_smedata_cost)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Gross Markup</span>
@@ -222,12 +251,79 @@ export default function MarginsView({ adminSecret, addToast }: MarginsViewProps)
             ))}
           </motion.div>
 
+          {/* PROVIDER PERFORMANCE */}
+          <motion.div variants={cardVariants} className="space-y-3">
+            <h3 className="text-sm font-bold text-slate-900">Provider Performance Summary</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {data.by_provider && data.by_provider.length > 0 ? (
+                data.by_provider.map(prov => (
+                  <div key={prov.provider} className="bg-white rounded-xl border border-slate-105 shadow-geometric p-5 flex flex-col justify-between hover:border-slate-200 transition">
+                    <div>
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider ${
+                          prov.provider.toLowerCase() === 'smedata'
+                            ? 'bg-blue-50 text-primary-blue border border-blue-100'
+                            : 'bg-emerald-50 text-emerald-750 border border-emerald-100'
+                        }`}>
+                          {prov.provider}
+                        </span>
+                        <span className="text-xs text-slate-450 font-bold ml-auto">{prov.units_sold} sold</span>
+                      </div>
+                      <div className="space-y-2 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Plans Count</span>
+                          <span className="font-semibold text-slate-800">
+                            {prov.total_plans} ({prov.active_plans} active, {prov.inactive_plans} inactive)
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Revenue</span>
+                          <span className="font-mono font-bold text-primary-blue">{formatNaira(prov.total_revenue)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Provider Cost</span>
+                          <span className="font-mono font-bold text-warning">{formatNaira(prov.total_provider_cost)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Gross Markup</span>
+                          <span className="font-mono font-bold text-purple-500">{formatNaira(prov.total_gross_markup)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Cashback Paid</span>
+                          <span className="font-mono font-bold text-orange-500">{formatNaira(prov.total_cashback_given)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="border-t border-slate-100 pt-3 mt-4">
+                      <div className="flex justify-between items-baseline mb-1">
+                        <span className="font-bold text-slate-700 text-xs">Net Profit</span>
+                        <span className={`font-mono font-bold text-lg ${prov.total_net_profit >= 0 ? 'text-success' : 'text-danger'}`}>
+                          {formatNaira(prov.total_net_profit)}
+                        </span>
+                      </div>
+                      {prov.loss_plans > 0 && (
+                        <div className="flex justify-between mt-1 pt-1 border-t border-dashed border-red-100">
+                          <span className="text-[10px] font-bold text-danger">Plans at a Loss</span>
+                          <span className="font-bold font-mono text-[10px] text-danger">{prov.loss_plans}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-2 text-center py-8 text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-xs">
+                  No provider performance statistics available.
+                </div>
+              )}
+            </div>
+          </motion.div>
+
           {/* TOP PLANS PROFIT CHART */}
           {chartPlans.length > 0 && (
             <motion.div variants={cardVariants} className="bg-white rounded-xl border border-slate-105 shadow-geometric p-6">
               <h3 className="text-sm font-bold text-slate-900 mb-1">Profit by Plan (top sellers)</h3>
               <p className="text-xs text-text-muted mb-5">
-                Blue = revenue from customers, Amber = cost to SMEData, Green/Red = your actual net profit
+                Blue = revenue from customers, Amber = cost to provider, Green/Red = your actual net profit
               </p>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
@@ -240,7 +336,7 @@ export default function MarginsView({ adminSecret, addToast }: MarginsViewProps)
                     <Tooltip content={<CustomTooltip />} />
                     <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
                     <Bar dataKey="total_revenue" name="Revenue" fill="#3B7EF8" radius={[3, 3, 0, 0]} />
-                    <Bar dataKey="total_smedata_cost" name="SMEData Cost" fill="#F59E0B" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="total_provider_cost" name="Provider Cost" fill="#F59E0B" radius={[3, 3, 0, 0]} />
                     <Bar dataKey="total_net_profit" name="Net Profit" radius={[3, 3, 0, 0]}>
                       {chartPlans.map((entry, index) => (
                         <Cell key={index} fill={entry.total_net_profit >= 0 ? '#22C55E' : '#EF4444'} />
@@ -273,9 +369,10 @@ export default function MarginsView({ adminSecret, addToast }: MarginsViewProps)
                 <thead>
                   <tr className="bg-[#FAFBFF] border-b border-[#EEF1F8] text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                     <th className="px-5 py-4">Plan (Click to inspect)</th>
+                    <th className="px-5 py-4">Provider</th>
                     <th className="px-5 py-4">Size</th>
                     <th className="px-5 py-4">Validity</th>
-                    <th className="px-5 py-4 text-right">SMEData Price</th>
+                    <th className="px-5 py-4 text-right">Provider Cost</th>
                     <th className="px-5 py-4 text-right">We Charge</th>
                     <th className="px-5 py-4 text-right">Gross Markup</th>
                     <th className="px-5 py-4 text-right font-semibold">Cashback (10%)</th>
@@ -287,7 +384,7 @@ export default function MarginsView({ adminSecret, addToast }: MarginsViewProps)
                 </thead>
                 <tbody className="divide-y divide-[#EEF1F8] text-xs">
                   {filteredPlans.length === 0 ? (
-                    <tr><td colSpan={11} className="px-5 py-10 text-center text-slate-400">No plans found.</td></tr>
+                    <tr><td colSpan={12} className="px-5 py-10 text-center text-slate-400">No plans found.</td></tr>
                   ) : (
                     filteredPlans.map(plan => {
                       const isExpanded = expandedPlanId === plan.id;
@@ -316,12 +413,21 @@ export default function MarginsView({ adminSecret, addToast }: MarginsViewProps)
                               </div>
                             </td>
                             <td className="px-5 py-3.5">
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                                (plan.primary_provider || 'smedata').toLowerCase() === 'smedata'
+                                  ? 'bg-blue-50 text-primary-blue border border-blue-150'
+                                  : 'bg-emerald-50 text-emerald-700 border border-emerald-150'
+                              }`}>
+                                {(plan.primary_provider || 'smedata').toLowerCase() === 'smedata' ? 'SME' : 'PFX'}
+                              </span>
+                            </td>
+                            <td className="px-5 py-3.5">
                               <span className="font-mono font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">
                                 {plan.size_label}
                               </span>
                             </td>
                             <td className="px-5 py-3.5 text-slate-500">{plan.validity}</td>
-                            <td className="px-5 py-3.5 text-right font-mono font-bold text-warning">{formatNaira(plan.smedata_price)}</td>
+                            <td className="px-5 py-3.5 text-right font-mono font-bold text-warning">{formatNaira(plan.provider_cost ?? plan.smedata_price)}</td>
                             <td className="px-5 py-3.5 text-right font-mono font-bold text-slate-900">{formatNaira(plan.we_charge)}</td>
                             <td className="px-5 py-3.5 text-right font-mono font-bold text-purple-500">
                               {plan.gross_markup >= 0 ? '+' : ''}{formatNaira(plan.gross_markup)}
@@ -346,7 +452,7 @@ export default function MarginsView({ adminSecret, addToast }: MarginsViewProps)
                           </tr>
                           {isExpanded && (
                             <tr className="bg-slate-50">
-                              <td colSpan={11} className="p-4 bg-slate-50/50">
+                              <td colSpan={12} className="p-4 bg-slate-50/50">
                                 <motion.div
                                   initial={{ opacity: 0, y: -5 }}
                                   animate={{ opacity: 1, y: 0 }}
@@ -367,8 +473,8 @@ export default function MarginsView({ adminSecret, addToast }: MarginsViewProps)
                                   {/* Receipt body */}
                                   <div className="space-y-3 text-xs">
                                     <div className="flex justify-between items-center">
-                                      <span className="text-slate-400">SMEData charges us:</span>
-                                      <span className="font-mono font-bold text-amber-500">{formatNaira(plan.smedata_price)}</span>
+                                      <span className="text-slate-400">Provider charges us:</span>
+                                      <span className="font-mono font-bold text-amber-500">{formatNaira(plan.provider_cost ?? plan.smedata_price)}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                       <span className="text-slate-400">We charge customer:</span>

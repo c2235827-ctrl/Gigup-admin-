@@ -291,7 +291,7 @@ export default function FinancialReportView({ adminSecret, addToast, setActiveTa
         </button>
       </div>
 
-      {/* 1. TOP-LEVEL "TOTAL BUSINESS PROFIT" CARD */}
+      {/* 1. TOP-LEVEL "COMBINED BUSINESS PROFIT" CARD */}
       <div className={`rounded-3xl p-6 lg:p-8 text-white shadow-lg transition-all relative overflow-hidden ${isCombinedProfitPositive ? 'bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600' : 'bg-gradient-to-br from-red-700 via-rose-700 to-amber-600'}`}>
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/5 rounded-full blur-2xl -ml-20 -mb-20 pointer-events-none" />
@@ -300,7 +300,7 @@ export default function FinancialReportView({ adminSecret, addToast, setActiveTa
           <div className="space-y-4">
             <div>
               <span className="px-2.5 py-1 bg-white/10 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest text-white/90">
-                ⭐ Combined Net Profit (Bottom Line)
+                ⭐ Combined Business Profit
               </span>
               <p className="text-4xl lg:text-5xl font-black font-mono tracking-tight mt-2.5">
                 {isCombinedProfitPositive ? '' : '−'}{formatNaira(Math.abs(combinedNetProfit))}
@@ -369,14 +369,14 @@ export default function FinancialReportView({ adminSecret, addToast, setActiveTa
             </div>
           </div>
 
-          {/* Total SMEData Cost */}
+          {/* Total Provider Cost */}
           <div className="bg-white rounded-2xl border border-slate-100 p-5 flex flex-col justify-between shadow-sm hover:border-slate-200 transition">
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="p-2 bg-blue-50 text-primary-blue rounded-xl">
                   <BarChart2 className="w-5 h-5" />
                 </span>
-                <span className="text-[10px] bg-blue-50 text-primary-blue font-bold px-2 py-0.5 rounded-full uppercase">SME Cost</span>
+                <span className="text-[10px] bg-blue-50 text-primary-blue font-bold px-2 py-0.5 rounded-full uppercase">Provider Cost</span>
               </div>
               <p className="text-2xl font-black font-mono text-slate-900 mt-2">{formatNaira(profit.smedata_cost)}</p>
               <p className="text-xs text-slate-500 font-medium mt-1">Wholesale bandwidth cost incurred</p>
@@ -425,7 +425,7 @@ export default function FinancialReportView({ adminSecret, addToast, setActiveTa
               </div>
 
               <div className="flex items-center justify-between px-5 py-3.5">
-                <span className="text-slate-700 text-xs font-medium">📉 SMEData Wholesale Cost</span>
+                <span className="text-slate-700 text-xs font-medium">📉 Provider Wholesale Cost</span>
                 <span className="font-mono font-bold text-sm text-rose-600">− {formatNaira(profit.smedata_cost)}</span>
               </div>
 
@@ -511,71 +511,164 @@ export default function FinancialReportView({ adminSecret, addToast, setActiveTa
 
       {/* 3. RECHARGE CARDS SECTION */}
       <div className="space-y-4">
-        <div className="flex items-center gap-2 border-l-4 border-[#3b82f6] pl-3">
-          <CreditCard className="w-5 h-5 text-[#3b82f6]" />
+        <div className="flex items-center gap-2 border-l-4 border-blue-600 pl-3">
+          <CreditCard className="w-5 h-5 text-blue-600" />
           <h2 className="text-lg font-black text-slate-800 uppercase tracking-wider">Recharge Cards Segment</h2>
         </div>
 
         {/* Bento stats row */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           {/* Card Volume & Status */}
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 flex flex-col justify-between shadow-sm">
+          <div className="bg-white rounded-2xl border border-slate-100 p-5 flex flex-col justify-between shadow-sm hover:border-slate-200 transition">
             <div>
-              <p className="text-[10px] bg-slate-50 text-slate-500 font-bold px-2 py-0.5 rounded-full uppercase w-fit">Batches & Volume</p>
+              <p className="text-[10px] bg-slate-50 text-slate-500 font-bold px-2 py-0.5 rounded-full uppercase w-fit">Activity & Status</p>
               <p className="text-2xl font-black font-mono text-slate-900 mt-2">{rechargeCards.successful_orders} orders</p>
               <p className="text-xs text-slate-500 font-medium mt-1">Successfully fulfilled card batches</p>
             </div>
             {rechargeCards.under_review_orders > 0 ? (
-              <div className="mt-4 pt-3 border-t border-rose-50 text-[11px] font-semibold text-danger flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              <div className="mt-4 pt-3 border-t border-rose-50 text-[11px] font-semibold text-rose-600 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
                 <span>{rechargeCards.under_review_orders} under review</span>
               </div>
             ) : (
-              <div className="mt-4 pt-3 border-t border-slate-50 text-[11px] font-semibold text-success flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-green-500" />
+              <div className="mt-4 pt-3 border-t border-emerald-50 text-[11px] font-semibold text-emerald-600 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 <span>All batches resolved</span>
               </div>
             )}
           </div>
 
-          {/* Subscriber Revenue & Cost */}
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 flex flex-col justify-between shadow-sm">
+          {/* Subscriber Spend (Revenue) */}
+          <div className="bg-white rounded-2xl border border-slate-100 p-5 flex flex-col justify-between shadow-sm hover:border-slate-200 transition">
             <div>
-              <p className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full uppercase w-fit">Subscriber Spend</p>
+              <p className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full uppercase w-fit">Subscriber Revenue</p>
               <p className="text-2xl font-black font-mono text-slate-900 mt-2">{formatNaira(rechargeCards.revenue)}</p>
               <p className="text-xs text-slate-500 font-medium mt-1">Collected from card subscriber orders</p>
             </div>
-            <div className="mt-4 pt-3 border-t border-slate-50 text-[11px] font-semibold text-slate-600 flex justify-between">
-              <span>Peyflex Cost:</span>
-              <span className="font-mono text-rose-600 font-bold">{formatNaira(rechargeCards.peyflex_cost)}</span>
+            <div className="mt-4 pt-3 border-t border-slate-50 text-[11px] font-semibold text-slate-500">
+              Direct gross sales
             </div>
           </div>
 
-          {/* Subscription Revenue */}
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 flex flex-col justify-between shadow-sm">
+          {/* Peyflex Cost */}
+          <div className="bg-white rounded-2xl border border-slate-100 p-5 flex flex-col justify-between shadow-sm hover:border-slate-200 transition">
             <div>
-              <p className="text-[10px] bg-blue-50 text-primary-blue font-bold px-2 py-0.5 rounded-full uppercase w-fit">Weekly/Monthly Fees</p>
+              <p className="text-[10px] bg-rose-50 text-rose-700 font-bold px-2 py-0.5 rounded-full uppercase w-fit">Peyflex Cost</p>
+              <p className="text-2xl font-black font-mono text-rose-600 mt-2">{formatNaira(rechargeCards.peyflex_cost)}</p>
+              <p className="text-xs text-slate-500 font-medium mt-1">Cost incurred to Peyflex provider</p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-slate-50 text-[11px] font-semibold text-slate-500">
+              Wholesale voucher cost
+            </div>
+          </div>
+
+          {/* Card Markup Profit */}
+          <div className="bg-white rounded-2xl border border-slate-100 p-5 flex flex-col justify-between shadow-sm hover:border-slate-200 transition">
+            <div>
+              <p className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full uppercase w-fit">Card Markup Profit</p>
+              <p className="text-2xl font-black font-mono text-slate-900 mt-2">{formatNaira(rechargeCards.card_markup_profit)}</p>
+              <p className="text-xs text-slate-500 font-medium mt-1">Direct card wholesale markups</p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-slate-50 text-[11px] font-semibold text-slate-500">
+              Per-card direct margin
+            </div>
+          </div>
+
+          {/* SaaS Subs Revenue */}
+          <div className="bg-white rounded-2xl border border-slate-100 p-5 flex flex-col justify-between shadow-sm hover:border-slate-200 transition">
+            <div>
+              <p className="text-[10px] bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded-full uppercase w-fit">SaaS Access Revenue</p>
               <p className="text-2xl font-black font-mono text-slate-900 mt-2">{formatNaira(rechargeCards.subscription_revenue)}</p>
-              <p className="text-xs text-slate-500 font-medium mt-1">SaaS subscription access revenues</p>
+              <p className="text-xs text-slate-500 font-medium mt-1">Weekly/monthly access fee income</p>
             </div>
-            <div className="mt-4 pt-3 border-t border-slate-50 text-[11px] font-semibold text-slate-600 flex justify-between">
-              <span>Markup margin profit:</span>
-              <span className="font-mono text-emerald-600 font-bold">{formatNaira(rechargeCards.card_markup_profit)}</span>
+            <div className="mt-4 pt-3 border-t border-slate-50 text-[11px] font-semibold text-slate-500">
+              Access & subscription fees
             </div>
           </div>
 
-          {/* Total Segment Profit */}
-          <div className="bg-[#f0f4ff] rounded-2xl border border-indigo-100 p-5 flex flex-col justify-between shadow-sm">
+          {/* Total segment Profit */}
+          <div className="bg-indigo-50/50 rounded-2xl border border-indigo-100 p-5 flex flex-col justify-between shadow-sm hover:border-indigo-200 transition">
             <div>
-              <p className="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded-full uppercase w-fit">Total Segment profit</p>
+              <p className="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded-full uppercase w-fit">Total segment profit</p>
               <p className="text-2xl font-black font-mono text-indigo-900 mt-2">{formatNaira(rechargeCards.total_profit)}</p>
-              <p className="text-xs text-indigo-600 font-medium mt-1">Markup profits + Subscription revenue</p>
+              <p className="text-xs text-indigo-600 font-medium mt-1">Markup profits + SaaS subscriptions</p>
             </div>
             <div className="mt-4 pt-3 border-t border-indigo-200 text-[11px] font-semibold text-indigo-600 flex justify-between">
               <span>Contribution ratio:</span>
               <span className="font-mono font-bold">
                 {combinedNetProfit > 0 ? `${((rechargeCards.total_profit / combinedNetProfit) * 100).toFixed(0)}%` : '0%'}
               </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Recharge Card Profit & Loss Breakdown Statement Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Profit & Loss Card */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+            <h3 className="text-sm font-black text-slate-700 uppercase tracking-wider">Recharge Card Profit & Loss</h3>
+            <div className="overflow-hidden border border-slate-100 rounded-xl divide-y divide-slate-100">
+              <div className="flex items-center justify-between px-5 py-4 bg-slate-50/50">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Line Item</span>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Amount</span>
+              </div>
+
+              <div className="flex items-center justify-between px-5 py-3.5">
+                <span className="text-slate-700 text-xs font-medium">💰 Card Subscriber Revenue</span>
+                <span className="font-mono font-bold text-sm text-slate-900">{formatNaira(rechargeCards.revenue)}</span>
+              </div>
+
+              <div className="flex items-center justify-between px-5 py-3.5">
+                <span className="text-slate-700 text-xs font-medium">📉 Peyflex API Provider Cost</span>
+                <span className="font-mono font-bold text-sm text-rose-600">− {formatNaira(rechargeCards.peyflex_cost)}</span>
+              </div>
+
+              <div className="flex items-center justify-between px-5 py-3.5 bg-slate-50/30">
+                <span className="text-slate-900 text-xs font-bold">📊 Card Markup Profit</span>
+                <span className="font-mono font-extrabold text-sm text-indigo-600">{formatNaira(rechargeCards.card_markup_profit)}</span>
+              </div>
+
+              <div className="flex items-center justify-between px-5 py-3.5">
+                <span className="text-slate-700 text-xs font-medium">🔌 SaaS Subscription Access Fees</span>
+                <span className="font-mono font-bold text-sm text-emerald-600">+ {formatNaira(rechargeCards.subscription_revenue)}</span>
+              </div>
+
+              <div className="flex items-center justify-between px-5 py-4 bg-indigo-50/30">
+                <span className="text-slate-950 text-sm font-black uppercase tracking-wider">Total Recharge Profit</span>
+                <span className="font-mono font-black text-base text-indigo-700">
+                  {formatNaira(rechargeCards.total_profit)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Audit Queue Details */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+            <h3 className="text-sm font-black text-slate-700 uppercase tracking-wider">Active Batch Operations</h3>
+            <div className="space-y-4">
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
+                <div className="p-2 bg-emerald-100 text-emerald-700 rounded-lg shrink-0">
+                  <CheckCircle className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-800">Successful Print & Delivery Runs</h4>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Processed a total of <strong className="font-semibold text-slate-900">{rechargeCards.successful_orders} orders</strong>. Card printing, voucher generation, and secure delivery tunnels completed without integrity faults.
+                  </p>
+                </div>
+              </div>
+
+              <div className={`p-4 rounded-xl border flex items-start gap-3 ${rechargeCards.under_review_orders > 0 ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-slate-50 border-slate-100 text-slate-500'}`}>
+                <div className={`p-2 rounded-lg shrink-0 ${rechargeCards.under_review_orders > 0 ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-600'}`}>
+                  <AlertTriangle className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-800">Review & Halted Batches</h4>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Currently <strong className="font-semibold text-slate-900">{rechargeCards.under_review_orders} orders</strong> are flagged for discrepancy verification or under review. Verify credentials in the provider reconciliation logs below if any errors persist.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -707,14 +800,14 @@ export default function FinancialReportView({ adminSecret, addToast, setActiveTa
           </div>
         )}
 
-        {/* Data Plans - SME Funding / Low Balance Alerts */}
+        {/* Data Plans - Provider Funding / Low Balance Alerts */}
         {smedata.funding_needed_for_pending > 0 && (
           <div className="p-5 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-sm">
             <div className="flex gap-3 items-start">
               <AlertTriangle className="w-6 h-6 text-amber-500 shrink-0 mt-0.5" />
               <div>
                 <h3 className="font-black text-amber-800 text-sm mb-1">
-                  ⚠️ SMEData Provider Wallet Funding Outstanding
+                  ⚠️ Provider Wallet Funding Outstanding
                 </h3>
                 <p className="text-xs text-amber-700 leading-relaxed max-w-2xl">
                   {smedata.recommendation}

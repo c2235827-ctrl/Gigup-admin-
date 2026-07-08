@@ -52,9 +52,11 @@ export interface Plan {
   plan_name: string;
   size_label: string;
   price: number;
-  smedata_plan_id: string;
+  smedata_plan_id?: string | null;
   validity: string;
   active: boolean;
+  primary_provider?: string | null;
+  peyflex_plan_code?: string | null;
 }
 
 export interface AppSetting {
@@ -137,6 +139,7 @@ export interface PlanMargin {
   active: boolean;
   // Per sale
   smedata_price: number;
+  provider_cost?: number;
   we_charge: number;
   gross_markup: number;
   cashback_given: number;
@@ -148,9 +151,11 @@ export interface PlanMargin {
   units_sold: number;
   total_revenue: number;
   total_smedata_cost: number;
+  total_provider_cost?: number;
   total_gross_markup: number;
   total_cashback_given: number;
   total_net_profit: number;
+  primary_provider?: string;
 }
 
 export interface MarginsData {
@@ -158,10 +163,14 @@ export interface MarginsData {
   summary: {
     overall_total_revenue: number;
     overall_total_smedata_cost: number;
+    overall_total_provider_cost?: number;
     overall_total_gross_markup: number;
     overall_total_cashback: number;
     overall_total_net_profit: number;
     total_plans: number;
+    active_plans?: number;
+    inactive_plans?: number;
+    zero_margin_plans_count?: number;
     loss_plans_count: number;
     best_margin_plan: string;
     best_margin_pct: number;
@@ -172,6 +181,20 @@ export interface MarginsData {
     network: string;
     total_revenue: number;
     total_smedata_cost: number;
+    total_provider_cost?: number;
+    total_gross_markup: number;
+    total_cashback_given: number;
+    total_net_profit: number;
+    units_sold: number;
+    loss_plans: number;
+  }>;
+  by_provider?: Array<{
+    provider: string;
+    total_plans: number;
+    active_plans: number;
+    inactive_plans: number;
+    total_revenue: number;
+    total_provider_cost: number;
     total_gross_markup: number;
     total_cashback_given: number;
     total_net_profit: number;
@@ -180,6 +203,7 @@ export interface MarginsData {
   }>;
   plans: PlanMargin[];
   loss_plans: PlanMargin[];
+  zero_margin_plans?: PlanMargin[];
 }
 
 export interface UserActivity {
