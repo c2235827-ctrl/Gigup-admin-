@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { Plus, Store, X, Copy, RefreshCw, DollarSign, Users, TrendingUp } from 'lucide-react';
 import {
   fetchBusinessPartners, fetchBusinessPartnerDetail, createBusinessPartner,
-  recalculatePartnerTier, recordPartnerPayout,
+  recalculatePartnerTier, recordPartnerPayout, updateBusinessPartner, deleteBusinessPartner,
 } from '../services/api';
 import { BusinessPartner, BusinessPartnerDetail } from '../types';
 import { formatNaira } from '../utils/formatters';
@@ -86,6 +86,36 @@ export default function BusinessPartnersView({ adminSecret, addToast }: Business
     }
   };
 
+  const handleSuspend = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'suspended' ? 'active' : 'suspended';
+    const result = await updateBusinessPartner(adminSecret, id, { status: newStatus });
+    if (result.success) {
+      addToast('success', newStatus === 'suspended' ? 'Partner suspended' : 'Partner reactivated');
+      handleViewDetail(id);
+      load();
+    }
+  };
+
+  const handleDelete = async (id: string, businessName: string) => {
+    const confirmed = confirm(`Permanently delete "${businessName}"? This cannot be undone. Their referral code will stop working immediately.`);
+    if (!confirmed) return;
+
+    try {
+      const result = await deleteBusinessPartner(adminSecret, id);
+      if (result.success) {
+        addToast('success', 'Partner deleted');
+        setSelectedDetail(null);
+        await load();
+      } else {
+        addToast('error', 'Failed to delete partner — please try again');
+        console.error('Delete failed:', result);
+      }
+    } catch (error) {
+      addToast('error', 'An error occurred while deleting');
+      console.error('Delete error:', error);
+    }
+  };
+
   if (selectedDetail) {
     const p = selectedDetail.partner;
     return (
@@ -131,9 +161,23 @@ export default function BusinessPartnersView({ adminSecret, addToast }: Business
             </div>
           </div>
 
-          <button onClick={() => handleRecalculate(p.id)} className="mt-4 px-4 py-2 bg-slate-100 rounded-lg text-xs font-bold flex items-center gap-2 cursor-pointer">
-            <RefreshCw className="w-3.5 h-3.5" /> Recalculate Tier
-          </button>
+          <div className="flex gap-2 mt-4">
+            <button onClick={() => handleRecalculate(p.id)} className="px-4 py-2 bg-slate-100 rounded-lg text-xs font-bold flex items-center gap-2 cursor-pointer">
+              <RefreshCw className="w-3.5 h-3.5" /> Recalculate Tier
+            </button>
+            <button
+              onClick={() => handleSuspend(p.id, p.status)}
+              className={`px-4 py-2 rounded-lg text-xs font-bold cursor-pointer ${p.status === 'suspended' ? 'bg-green-100 text-success' : 'bg-amber-100 text-amber-600'}`}
+            >
+              {p.status === 'suspended' ? '▶ Reactivate' : '⏸ Suspend'}
+            </button>
+            <button
+              onClick={() => handleDelete(p.id, p.business_name)}
+              className="px-4 py-2 bg-red-100 text-danger rounded-lg text-xs font-bold cursor-pointer"
+            >
+              🗑 Delete Partner
+            </button>
+          </div>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-105 shadow-geometric p-6">
