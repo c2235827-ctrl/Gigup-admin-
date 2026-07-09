@@ -22,10 +22,11 @@ import {
   Star,
   FileText,
   MessageSquareText,
-  CreditCard
+  CreditCard,
+  Store
 } from 'lucide-react';
 
-export type ActiveTab = 'dashboard' | 'orders' | 'withdrawals' | 'users' | 'plans' | 'settings' | 'analytics' | 'export' | 'audit' | 'margins' | 'activity' | 'push' | 'inactive' | 'streaks' | 'ambassadors' | 'financial' | 'feedback' | 'recharge_cards';
+export type ActiveTab = 'dashboard' | 'orders' | 'withdrawals' | 'users' | 'plans' | 'settings' | 'analytics' | 'export' | 'audit' | 'margins' | 'activity' | 'push' | 'inactive' | 'streaks' | 'ambassadors' | 'feedback' | 'recharge_cards' | 'business_partners';
 
 interface SidebarProps {
   activeTab: ActiveTab;
@@ -63,6 +64,7 @@ export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, p
     { id: 'activity' as ActiveTab, label: 'User Activity', icon: Activity },
     { id: 'streaks' as ActiveTab, label: 'Streaks', icon: Flame },
     { id: 'ambassadors' as ActiveTab, label: 'Ambassadors', icon: Star },
+    { id: 'business_partners' as ActiveTab, label: 'Business Partners', icon: Store },
     { id: 'feedback' as ActiveTab, label: 'Feedback & Surveys', icon: MessageSquareText },
     { id: 'recharge_cards' as ActiveTab, label: 'Recharge Cards', icon: CreditCard },
     { id: 'push' as ActiveTab, label: 'Push Notifications', icon: Bell },
@@ -74,7 +76,7 @@ export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, p
   ];
 
   if (role === 'sub_admin') {
-    menuItems = menuItems.filter(item => ['ambassadors'].includes(item.id));
+    menuItems = menuItems.filter(item => ['ambassadors', 'business_partners'].includes(item.id));
   }
 
   const handleTabClick = (tabId: ActiveTab) => {

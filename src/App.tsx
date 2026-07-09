@@ -24,6 +24,7 @@ import PushView from './components/PushView';
 import InactiveAccountsView from './components/InactiveAccountsView';
 import StreaksView from './components/StreaksView';
 import AmbassadorsView from './components/AmbassadorsView';
+import BusinessPartnersView from './components/BusinessPartnersView';
 import FinancialReportView from './components/FinancialReportView';
 import FeedbackView from './components/FeedbackView';
 import RechargeCardsView from './components/RechargeCardsView';
@@ -366,6 +367,10 @@ export default function App() {
 
               {activeTab === 'ambassadors' && (
                 <AmbassadorsView adminSecret={role === 'sub_admin' ? (subAdminSecret || '') : (adminSecret || '')} addToast={addToast} role={role} />
+              )}
+
+              {activeTab === 'business_partners' && (
+                <BusinessPartnersView adminSecret={role === 'sub_admin' ? (subAdminSecret || '') : (adminSecret || '')} addToast={addToast} />
               )}
 
               {activeTab === 'financial' && (

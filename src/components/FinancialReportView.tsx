@@ -22,7 +22,8 @@ import {
   fetchFinancialSummary, 
   retryPendingOrders, 
   fetchRechargeCardOverview, 
-  fetchRechargeCardSpendBreakdown 
+  fetchRechargeCardSpendBreakdown,
+  normalizeRetryResponse
 } from '../services/api';
 import { 
   FinancialSummary, 
@@ -98,8 +99,9 @@ export default function FinancialReportView({ adminSecret, addToast, setActiveTa
     setIsRetrying(true);
     try {
       const result = await retryPendingOrders(adminSecret);
-      if (result.success) {
-        const { total, fulfilled, still_pending, failed } = result.summary;
+      if (result && (result.success || result.summary || result.results)) {
+        const { summary } = normalizeRetryResponse(result);
+        const { total, fulfilled, still_pending, failed } = summary;
         addToast(
           'success', 
           `Processed: ${fulfilled} fulfilled, ${still_pending} still pending, ${failed} failed (out of ${total} total)`

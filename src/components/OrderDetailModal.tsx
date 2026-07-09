@@ -15,7 +15,7 @@ import {
   Gift
 } from 'lucide-react';
 import { Order } from '../types';
-import { requeryOrder, resendSignupBonus } from '../services/api';
+import { retryPendingOrders, resendSignupBonus, normalizeRetryResponse } from '../services/api';
 import { formatNaira, formatDateTime } from '../utils/formatters';
 import { addAuditLog } from '../utils/auditLogger';
 
@@ -36,8 +36,15 @@ export default function OrderDetailModal({
 }: OrderDetailModalProps) {
   const [isRequerying, setIsRequerying] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [localStatus, setLocalStatus] = useState<string | null>(null);
+  const [localCashback, setLocalCashback] = useState<number | null>(null);
+  const [providerDisabled, setProviderDisabled] = useState<boolean>(false);
+  const [stillPending, setStillPending] = useState<boolean>(false);
 
   if (!order) return null;
+
+  const activeStatus = localStatus || order.status;
+  const activeCashback = localCashback !== null ? localCashback : order.cashback_amount;
 
   const handleResendBonus = async () => {
     if (!confirm(`Resend 1GB welcome data bonus to ${order.recipient_phone}?`)) return;
@@ -60,37 +67,50 @@ export default function OrderDetailModal({
     }
   };
 
-  const handleRequery = async () => {
-    if (!order.smedata_ref) {
-      addToast('error', 'No SMEDATA reference found. Use "Resend Bonus" for bonus orders or contact support for paid orders.');
-      return;
-    }
-
+  const handleRetryOrder = async () => {
     setIsRequerying(true);
-    addToast('info', `Syncing VTU carrier state... Reference: ${order.smedata_ref}`);
+    addToast('info', 'Retrying pending orders batch process...');
 
     try {
-      const response = await requeryOrder(adminSecret, order.smedata_ref);
-      if (response.success) {
-        if (response.smedata_status === 'success') {
-          addToast('success', `✅ Verified delivery successfully!`);
-          addAuditLog('order', 'requery_transaction', `Requeried order reference ${order.smedata_ref} from detail modal. Status: SUCCESS`, 'success');
-        } else if (response.smedata_status === 'failed') {
-          addToast('warning', `❌ Carrier reported failure. User wallet refunded.`);
-          addAuditLog('order', 'requery_transaction', `Requeried order reference ${order.smedata_ref} from detail modal. Status: FAILED (Refunded)`, 'success');
+      const response = await retryPendingOrders(adminSecret);
+      if (response && (response.success || response.summary || response.results)) {
+        const { summary, results } = normalizeRetryResponse(response);
+        const thisOrderResult = results?.find((r: any) => r.order_id === order.id);
+        if (thisOrderResult) {
+          if (thisOrderResult.status === 'fulfilled') {
+            setLocalStatus('success');
+            if (thisOrderResult.cashback !== undefined) setLocalCashback(thisOrderResult.cashback);
+            addToast('success', '✅ Order fulfilled successfully!');
+            addAuditLog('order', 'retry_transaction', `Retried order ${order.id} from detail modal. Status: SUCCESS`, 'success');
+          } else if (thisOrderResult.status === 'failed') {
+            setLocalStatus('failed');
+            addToast('warning', '❌ Order failed and was refunded.');
+            addAuditLog('order', 'retry_transaction', `Retried order ${order.id} from detail modal. Status: FAILED (Refunded)`, 'success');
+          } else if (thisOrderResult.status === 'still_pending_provider_disabled') {
+            setProviderDisabled(true);
+            setLocalStatus('pending');
+            addToast('warning', 'Provider currently disabled — enable it first');
+            addAuditLog('order', 'retry_transaction', `Retried order ${order.id} from detail modal. Status: STILL PENDING (Provider Disabled)`, 'success');
+          } else if (thisOrderResult.status === 'still_pending') {
+            setStillPending(true);
+            setLocalStatus('pending');
+            addToast('info', 'Order is still pending.');
+            addAuditLog('order', 'retry_transaction', `Retried order ${order.id} from detail modal. Status: STILL PENDING`, 'success');
+          }
         } else {
-          addToast('info', `Carrier returned state: ${response.smedata_status}`);
-          addAuditLog('order', 'requery_transaction', `Requeried order reference ${order.smedata_ref} from detail modal. Status: ${response.smedata_status}`, 'success');
+          addToast('info', 'Batch retry finished. This order status remains unchanged.');
         }
+
+        addToast(
+          'info', 
+          `Retried ${summary.total} pending orders — ${summary.fulfilled} succeeded, ${summary.still_pending} still pending, ${summary.failed} failed.`
+        );
         onRefreshAll(); // Trigger reload of stats and feeds
-        onClose(); // Close modal on success
       } else {
-        addToast('error', `Requery action did not complete successfully`);
-        addAuditLog('order', 'requery_transaction', `Failed to requery order reference ${order.smedata_ref}: API reported failure`, 'failed');
+        addToast('error', `Retry action did not complete successfully`);
       }
     } catch (err: any) {
       addToast('error', err.message || 'Operation failed.');
-      addAuditLog('order', 'requery_transaction', `Failed to requery order reference ${order.smedata_ref}: ${err.message || err}`, 'failed');
     } finally {
       setIsRequerying(false);
     }
@@ -102,9 +122,9 @@ export default function OrderDetailModal({
     ? 'bg-green-100 text-green-750 border-green-200' 
     : 'bg-red-100 text-red-750 border-red-200';
 
-  const statusColors = order.status === 'success'
+  const statusColors = activeStatus === 'success'
     ? 'bg-green-100 text-success'
-    : order.status === 'failed'
+    : activeStatus === 'failed'
     ? 'bg-red-100 text-danger'
     : 'bg-purple-100 text-pending animate-pulse';
 
@@ -149,8 +169,8 @@ export default function OrderDetailModal({
                 <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest">Order ID</span>
                 <span className="text-sm font-bold font-mono text-slate-900">{order.id}</span>
               </div>
-              <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-bold ${statusColors}`}>
-                {order.status.toUpperCase()}
+              <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-bold ${providerDisabled ? 'bg-amber-100 text-amber-750' : statusColors}`}>
+                {providerDisabled ? 'PROVIDER DISABLED' : activeStatus.toUpperCase()}
               </span>
             </div>
 
@@ -180,7 +200,7 @@ export default function OrderDetailModal({
                 <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Transaction Fees</span>
                 <span className="text-sm font-extrabold text-slate-950 font-mono block">{formatNaira(order.amount)}</span>
                 <span className="text-[10px] text-purple-600 block mt-0.5 font-semibold">
-                  {order.cashback_amount > 0 ? `+ ${formatNaira(order.cashback_amount)} cashback` : 'No cashback earned'}
+                  {activeCashback > 0 ? `+ ${formatNaira(activeCashback)} cashback` : 'No cashback earned'}
                 </span>
               </div>
             </div>
@@ -195,20 +215,38 @@ export default function OrderDetailModal({
             </div>
 
             {/* PENDING TRIGGER NOTICE */}
-            {order.status === 'pending' && (
-              <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl flex items-start gap-3">
-                <Clock className="w-5 h-5 text-pending animate-pulse shrink-0 mt-0.5" />
-                <div className="text-xs text-purple-850">
-                  <span className="font-bold block">Transaction processing...</span>
-                  The mobile transaction is currently pending dispatch on Supabase. Press the sync button to audit the external carrier logs directly.
+            {activeStatus === 'pending' && (
+              providerDisabled ? (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+                  <AlertOctagon className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 animate-pulse" />
+                  <div className="text-xs text-amber-800">
+                    <span className="font-bold block">Provider Currently Disabled</span>
+                    This transaction is pending because the provider is currently disabled. Please enable the provider in the settings panel first.
+                  </div>
                 </div>
-              </div>
+              ) : stillPending ? (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+                  <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 animate-pulse" />
+                  <div className="text-xs text-amber-800">
+                    <span className="font-bold block">Order remains pending</span>
+                    This transaction is still waiting in the queue. You can retry again shortly.
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl flex items-start gap-3">
+                  <Clock className="w-5 h-5 text-pending animate-pulse shrink-0 mt-0.5" />
+                  <div className="text-xs text-purple-850">
+                    <span className="font-bold block">Transaction processing...</span>
+                    The mobile transaction is currently pending dispatch on Supabase. Press the retry button to attempt manual routing and dispatch.
+                  </div>
+                </div>
+              )
             )}
           </div>
 
           {/* BOTTOM BUTTON BAR */}
           <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center grow-0">
-            {order.amount === 0 && (order.status === 'pending' || order.status === 'failed' || !order.smedata_ref) ? (
+            {order.amount === 0 && (activeStatus === 'pending' || activeStatus === 'failed' || !order.smedata_ref) ? (
               <button
                 type="button"
                 onClick={handleResendBonus}
@@ -225,10 +263,10 @@ export default function OrderDetailModal({
                 )}
                 <span>Resend Signup Bonus</span>
               </button>
-            ) : order.status === 'pending' ? (
+            ) : activeStatus === 'pending' ? (
               <button
                 type="button"
-                onClick={handleRequery}
+                onClick={handleRetryOrder}
                 disabled={isRequerying}
                 className="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-100 hover:bg-amber-200 disabled:opacity-75 text-warning font-extrabold text-xs rounded-xl shadow-xs transition-all cursor-pointer active:translate-y-[0.5px]"
               >
@@ -240,7 +278,7 @@ export default function OrderDetailModal({
                 ) : (
                   <RefreshCw className="w-4 h-4" />
                 )}
-                <span>Requery VTU Delivery</span>
+                <span>Retry Order</span>
               </button>
             ) : (
               <div />

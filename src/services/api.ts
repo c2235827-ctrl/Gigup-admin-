@@ -1,4 +1,4 @@
-import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary, InactiveAccount, UserStreakAdmin, Ambassador, AmbassadorStats, AmbassadorDetail, FinancialSummary, FinancialReport, AppRating, SurveyResponseItem, SurveyQuestion, FeedbackOverview, RechargeCardStats, RechargeCardConfig, RechargeCardSubscription, RechargeCardOrder, ReconciliationItem, RechargeCardOverview, PeyflexRate, DenominationBreakdownItem } from '../types';
+import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary, InactiveAccount, UserStreakAdmin, Ambassador, AmbassadorStats, AmbassadorDetail, FinancialSummary, FinancialReport, AppRating, SurveyResponseItem, SurveyQuestion, FeedbackOverview, RechargeCardStats, RechargeCardConfig, RechargeCardSubscription, RechargeCardOrder, ReconciliationItem, RechargeCardOverview, PeyflexRate, DenominationBreakdownItem, BusinessPartner, BusinessPartnerDetail } from '../types';
 
 const BASE_URL = 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
 
@@ -501,16 +501,74 @@ export async function fetchFinancialSummary(secret: string): Promise<FinancialSu
   return await res.json();
 }
 
-export async function retryPendingOrders(secret: string): Promise<{
-  success: boolean;
-  summary: { total: number; fulfilled: number; still_pending: number; failed: number };
-}> {
+export async function retryPendingOrders(secret: string): Promise<any> {
   const res = await fetch(`${BASE_URL}/retry-pending-orders`, {
     method: 'POST',
     headers: getHeaders(secret),
   });
-  if (!res.ok) throw new Error('Failed to retry pending orders');
+  if (!res.ok) {
+    if (res.status === 401) throw new Error('Unauthorized');
+    throw new Error('Failed to retry pending orders');
+  }
   return await res.json();
+}
+
+export interface RetryResponseNormalized {
+  summary: {
+    total: number;
+    fulfilled: number;
+    still_pending: number;
+    failed: number;
+  };
+  results: Array<{
+    order_id: string;
+    status: 'fulfilled' | 'still_pending' | 'failed' | 'still_pending_provider_disabled';
+    provider: 'smedata' | 'peyflex';
+    cashback?: number;
+  }>;
+}
+
+export function normalizeRetryResponse(response: any): RetryResponseNormalized {
+  // Extract summary
+  let summary = response?.summary;
+  if (!summary && response?.data?.summary) {
+    summary = response.data.summary;
+  }
+  
+  let total = 0;
+  let fulfilled = 0;
+  let still_pending = 0;
+  let failed = 0;
+
+  if (summary) {
+    total = typeof summary.total === 'number' ? summary.total : (Number(summary.total) || 0);
+    fulfilled = typeof summary.fulfilled === 'number' ? summary.fulfilled : (Number(summary.fulfilled) || 0);
+    still_pending = typeof summary.still_pending === 'number' ? summary.still_pending : (Number(summary.still_pending) || 0);
+    failed = typeof summary.failed === 'number' ? summary.failed : (Number(summary.failed) || 0);
+  } else {
+    // Try flat fields at root level or under data
+    const targetObj = response?.data || response;
+    if (targetObj && (targetObj.total !== undefined || targetObj.fulfilled !== undefined)) {
+      total = Number(targetObj.total) || 0;
+      fulfilled = Number(targetObj.fulfilled) || 0;
+      still_pending = Number(targetObj.still_pending) || 0;
+      failed = Number(targetObj.failed) || 0;
+    }
+  }
+
+  // Extract results
+  let results = response?.results;
+  if (!results && response?.data?.results) {
+    results = response.data.results;
+  }
+  if (!Array.isArray(results)) {
+    results = [];
+  }
+
+  return {
+    summary: { total, fulfilled, still_pending, failed },
+    results
+  };
 }
 
 export async function fetchFinancialReport(
@@ -637,6 +695,59 @@ export async function fetchRechargeCardSpendBreakdown(secret: string): Promise<D
   const data = await res.json();
   return data.breakdown ?? [];
 }
+
+export async function fetchBusinessPartners(secret: string): Promise<BusinessPartner[]> {
+  const res = await fetch(`${BASE_URL}/admin-business-partners?action=list`, { headers: getHeaders(secret) });
+  const data = await res.json();
+  return data.partners ?? [];
+}
+
+export async function fetchBusinessPartnerDetail(secret: string, id: string): Promise<BusinessPartnerDetail | null> {
+  const res = await fetch(`${BASE_URL}/admin-business-partners?action=detail&id=${id}`, { headers: getHeaders(secret) });
+  const data = await res.json();
+  return data.success ? data : null;
+}
+
+export async function createBusinessPartner(secret: string, payload: {
+  business_name: string; contact_name?: string; phone: string; email?: string;
+  business_type?: string; notes?: string;
+}): Promise<{ success: boolean; partner?: BusinessPartner; signup_link?: string }> {
+  const res = await fetch(`${BASE_URL}/admin-business-partners?action=create`, {
+    method: 'POST', headers: getHeaders(secret), body: JSON.stringify(payload),
+  });
+  return await res.json();
+}
+
+export async function updateBusinessPartner(secret: string, id: string, updates: Partial<BusinessPartner>): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE_URL}/admin-business-partners?action=update`, {
+    method: 'POST', headers: getHeaders(secret), body: JSON.stringify({ id, ...updates }),
+  });
+  return await res.json();
+}
+
+export async function deleteBusinessPartner(secret: string, id: string): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE_URL}/admin-business-partners?action=delete`, {
+    method: 'POST', headers: getHeaders(secret), body: JSON.stringify({ id }),
+  });
+  return await res.json();
+}
+
+export async function recalculatePartnerTier(secret: string, id: string): Promise<{ success: boolean; partner?: BusinessPartner }> {
+  const res = await fetch(`${BASE_URL}/admin-business-partners?action=recalculate_tier`, {
+    method: 'POST', headers: getHeaders(secret), body: JSON.stringify({ id }),
+  });
+  return await res.json();
+}
+
+export async function recordPartnerPayout(secret: string, id: string, amount: number): Promise<{ success: boolean; partner?: BusinessPartner }> {
+  const res = await fetch(`${BASE_URL}/admin-business-partners?action=record_payout`, {
+    method: 'POST', headers: getHeaders(secret), body: JSON.stringify({ id, amount }),
+  });
+  return await res.json();
+}
+
+
+
 
 
 

@@ -23,7 +23,7 @@ import {
   Tooltip, 
   Legend 
 } from 'recharts';
-import { fetchFinancialSummary, retryPendingOrders, fetchAnalytics } from '../services/api';
+import { fetchFinancialSummary, retryPendingOrders, fetchAnalytics, normalizeRetryResponse } from '../services/api';
 import { FinancialSummary, AnalyticsData } from '../types';
 import { formatNaira } from '../utils/formatters';
 
@@ -70,8 +70,9 @@ export default function FinancialSummaryView({ adminSecret, addToast }: Financia
     setIsRetrying(true);
     try {
       const result = await retryPendingOrders(adminSecret);
-      if (result.success) {
-        const { total, fulfilled, still_pending, failed } = result.summary;
+      if (result && (result.success || result.summary || result.results)) {
+        const { summary } = normalizeRetryResponse(result);
+        const { total, fulfilled, still_pending, failed } = summary;
         addToast(
           'success', 
           `Processed: ${fulfilled} fulfilled, ${still_pending} still pending, ${failed} failed (out of ${total} total)`

@@ -16,7 +16,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { Order } from "../types";
-import { fetchOrders, requeryOrder, resendSignupBonus } from "../services/api";
+import { fetchOrders, requeryOrder, resendSignupBonus, retryPendingOrders, normalizeRetryResponse } from "../services/api";
 import { formatNaira, formatDateTime } from "../utils/formatters";
 import { addAuditLog } from "../utils/auditLogger";
 
@@ -69,6 +69,67 @@ export default function OrdersView({
   const [requeryingRefs, setRequeryingRefs] = useState<Record<string, boolean>>(
     {},
   );
+  const [retryingOrderId, setRetryingOrderId] = useState<string | null>(null);
+
+  const handleRetryOrder = async (e: React.MouseEvent, orderId: string) => {
+    e.stopPropagation(); // Avoid opening the row detail modal
+    if (role === 'sub_admin') {
+      addToast("error", "You don't have permission to perform this action.");
+      return;
+    }
+    setRetryingOrderId(orderId);
+    addToast("info", "Retrying pending orders...");
+
+    try {
+      const response = await retryPendingOrders(adminSecret);
+      if (response && (response.success || response.summary || response.results)) {
+        const { summary, results } = normalizeRetryResponse(response);
+        if (results && results.length > 0) {
+          setOrders((prevOrders) =>
+            prevOrders.map((o) => {
+              const match = results.find((r: any) => r.order_id === o.id);
+              if (match) {
+                let localStatus = o.status;
+                if (match.status === "fulfilled") localStatus = "success";
+                else if (match.status === "failed") localStatus = "failed";
+                else if (
+                  match.status === "still_pending" ||
+                  match.status === "still_pending_provider_disabled"
+                ) {
+                  localStatus = "pending";
+                }
+                return {
+                  ...o,
+                  status: localStatus,
+                  cashback_amount:
+                    match.cashback !== undefined ? match.cashback : o.cashback_amount,
+                  _provider_disabled:
+                    match.status === "still_pending_provider_disabled" ? true : false,
+                  _still_pending: match.status === "still_pending" ? true : false,
+                };
+              }
+              return o;
+            })
+          );
+        }
+
+        addToast(
+          "info",
+          `Retried ${summary.total} pending orders — ${summary.fulfilled} succeeded, ${summary.still_pending} still pending, ${summary.failed} failed.`
+        );
+
+        // Refresh stats
+        onRefreshStats();
+      } else {
+        addToast("error", "Failed to retry pending orders.");
+      }
+    } catch (err: any) {
+      addToast("error", err.message || "Retry transaction call failed.");
+    } finally {
+      setRetryingOrderId(null);
+    }
+  };
+
 
   // Sync initial pending filter with internal state if parent specifies it
   useEffect(() => {
@@ -490,18 +551,33 @@ export default function OrdersView({
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold ${
-                            order.status === "success"
-                              ? "bg-[#DCFCE7] text-[#22C55E]"
-                              : order.status === "failed"
-                                ? "bg-[#FEE2E2] text-[#EF4444]"
-                                : "bg-[#F3E8FF] text-[#8B5CF6] animate-pulse"
-                          }`}
-                        >
-                          {order.status.charAt(0).toUpperCase() +
-                            order.status.slice(1)}
-                        </span>
+                        {(order as any)._provider_disabled ? (
+                          <div className="flex flex-col gap-1">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-700">
+                              Pending
+                            </span>
+                            <span className="text-[9px] text-red-500 font-bold leading-tight max-w-[120px]">
+                              Provider disabled
+                            </span>
+                          </div>
+                        ) : (order as any)._still_pending ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-700 animate-pulse">
+                            Still Pending
+                          </span>
+                        ) : (
+                          <span
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold ${
+                              order.status === "success"
+                                ? "bg-[#DCFCE7] text-[#22C55E]"
+                                : order.status === "failed"
+                                  ? "bg-[#FEE2E2] text-[#EF4444]"
+                                  : "bg-[#F3E8FF] text-[#8B5CF6] animate-pulse"
+                            }`}
+                          >
+                            {order.status.charAt(0).toUpperCase() +
+                              order.status.slice(1)}
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 font-mono font-medium text-slate-650">
                         {order.smedata_ref || "—"}
@@ -522,33 +598,15 @@ export default function OrdersView({
                                 🎁 Resend Bonus
                               </button>
                             );
-                          } else if (!order.smedata_ref && order.amount > 0) {
+                          } else if (order.status === "pending" && order.amount > 0) {
+                            const isRetrying = retryingOrderId === order.id;
                             return (
                               <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  alert(
-                                    "Contact Support:\n\nPhone: 09064704370\nEmail: hello@gigupnigeria.com\nWebsite: gigupnigeria.com",
-                                  );
-                                }}
-                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] rounded-lg transition-all cursor-pointer shadow-xs active:translate-y-[0.5px]"
-                              >
-                                📞 Manual Check
-                              </button>
-                            );
-                          } else if (
-                            order.smedata_ref &&
-                            order.status === "pending"
-                          ) {
-                            const isRequerying =
-                              requeryingRefs[order.smedata_ref] || false;
-                            return (
-                              <button
-                                onClick={(e) => handleRequery(e, order)}
-                                disabled={isRequerying}
+                                onClick={(e) => handleRetryOrder(e, order.id)}
+                                disabled={isRetrying || role === 'sub_admin'}
                                 className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-105 hover:bg-blue-200 text-blue-700 disabled:opacity-70 font-semibold text-[11px] rounded-lg transition-all cursor-pointer shadow-xs active:translate-y-[0.5px]"
                               >
-                                {isRequerying ? (
+                                {isRetrying ? (
                                   <svg
                                     className="animate-spin h-3.5 w-3.5 text-blue-700"
                                     fill="none"
@@ -571,7 +629,7 @@ export default function OrdersView({
                                 ) : (
                                   <RefreshCw className="w-3 h-3" />
                                 )}
-                                <span>Requery</span>
+                                <span>Retry</span>
                               </button>
                             );
                           } else if (

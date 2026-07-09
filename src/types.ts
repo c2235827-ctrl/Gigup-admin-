@@ -511,3 +511,33 @@ export interface DenominationBreakdownItem {
   profit: number;
 }
 
+export interface BusinessPartner {
+  id: string;
+  business_name: string;
+  contact_name: string | null;
+  phone: string;
+  email: string | null;
+  business_type: 'restaurant' | 'cybercafe' | 'pos_agent' | 'community_org' | 'other';
+  referral_code: string;
+  tier_label: string;
+  monthly_pay: number;
+  status: 'trial' | 'active' | 'suspended' | 'inactive';
+  trial_ends_at: string | null;
+  notes: string | null;
+  total_earned: number;
+  total_paid: number;
+  balance_owed: number;
+  total_referrals: number;
+  qualified_referrals: number;
+  created_at: string;
+}
+
+export interface BusinessPartnerDetail {
+  partner: BusinessPartner;
+  referred_users: { id: string; full_name: string; phone: string; first_topup_done: boolean; created_at: string }[];
+  total_referrals: number;
+  qualified_referrals: number;
+  current_tier: { tier_label: string; monthly_pay: number };
+}
+
+
