@@ -326,7 +326,7 @@ export default function MarginsView({ adminSecret, addToast }: MarginsViewProps)
                 Blue = revenue from customers, Amber = cost to provider, Green/Red = your actual net profit
               </p>
               <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <BarChart data={chartPlans} margin={{ top: 5, right: 10, left: -10, bottom: 60 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
                     <XAxis dataKey="plan_name" stroke="#94A3B8" fontSize={9} tickLine={false} axisLine={false}

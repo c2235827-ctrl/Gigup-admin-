@@ -49,7 +49,27 @@ export default function AnalyticsView({ adminSecret, addToast }: AnalyticsViewPr
     setIsLoading(true);
     try {
       const result = await fetchAnalytics(adminSecret, r);
-      setData(result);
+      if (result && result.success && result.summary && result.charts) {
+        // Fix duplicate number issue where net_revenue is returned as equal to revenue
+        const processedSummary = {
+          ...result.summary,
+          net_revenue: result.summary.total_revenue - result.summary.total_cashback_cost
+        };
+        const processedCharts = {
+          ...result.charts,
+          daily_revenue: result.charts.daily_revenue.map(item => ({
+            ...item,
+            net_revenue: item.revenue - item.cashback
+          }))
+        };
+        setData({
+          ...result,
+          summary: processedSummary,
+          charts: processedCharts
+        });
+      } else {
+        setData(result);
+      }
     } catch (err: any) {
       addToast('error', err.message || 'Failed to load analytics');
     } finally {
@@ -227,7 +247,7 @@ export default function AnalyticsView({ adminSecret, addToast }: AnalyticsViewPr
             <h3 className="text-sm font-bold text-slate-900 mb-1">Revenue & Cashback Over Time</h3>
             <p className="text-xs text-text-muted mb-5">Daily breakdown of gross revenue, cashback cost, and net revenue</p>
             <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <AreaChart data={data.charts.daily_revenue} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                   <defs>
                     <linearGradient id="gRevenue" x1="0" y1="0" x2="0" y2="1">
@@ -268,7 +288,7 @@ export default function AnalyticsView({ adminSecret, addToast }: AnalyticsViewPr
               <h3 className="text-sm font-bold text-slate-900 mb-1">Orders by Day of Week</h3>
               <p className="text-xs text-text-muted mb-4">Which day generates the most purchases</p>
               <div className="h-56">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <BarChart data={data.charts.by_day_of_week} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
                     <XAxis dataKey="day" stroke="#94A3B8" fontSize={10} tickLine={false} axisLine={false}
@@ -296,7 +316,7 @@ export default function AnalyticsView({ adminSecret, addToast }: AnalyticsViewPr
               <h3 className="text-sm font-bold text-slate-900 mb-1">Orders by Hour of Day</h3>
               <p className="text-xs text-text-muted mb-4">When do users buy data?</p>
               <div className="h-56">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <BarChart data={data.charts.by_hour} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
                     <XAxis dataKey="label" stroke="#94A3B8" fontSize={9} tickLine={false} axisLine={false}
@@ -325,7 +345,7 @@ export default function AnalyticsView({ adminSecret, addToast }: AnalyticsViewPr
             <p className="text-xs text-text-muted mb-6">Which carrier drives the most business</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
               <div className="h-56">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <PieChart>
                     <Pie
                       data={data.charts.by_network}
@@ -372,7 +392,7 @@ export default function AnalyticsView({ adminSecret, addToast }: AnalyticsViewPr
               👥 <strong>{data.summary.total_signups}</strong> new users in the last {range} days
             </p>
             <div className="h-56 mt-4">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <AreaChart data={data.charts.daily_signups} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="gSignups" x1="0" y1="0" x2="0" y2="1">
@@ -399,7 +419,7 @@ export default function AnalyticsView({ adminSecret, addToast }: AnalyticsViewPr
               <h3 className="text-sm font-bold text-slate-900 mb-1">💳 Daily Wallet Top-Ups</h3>
               <p className="text-xs text-text-muted mb-4">Amount funded into wallets each day</p>
               <div className="h-52">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <BarChart data={data.charts.daily_topups} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
                     <XAxis dataKey="date" stroke="#94A3B8" fontSize={9} tickLine={false} axisLine={false}
@@ -418,7 +438,7 @@ export default function AnalyticsView({ adminSecret, addToast }: AnalyticsViewPr
               <h3 className="text-sm font-bold text-slate-900 mb-1">📅 Sign-Up Days</h3>
               <p className="text-xs text-text-muted mb-4">Which day of the week do people register?</p>
               <div className="h-52">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <BarChart data={data.charts.signups_by_day} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
                     <XAxis dataKey="day" stroke="#94A3B8" fontSize={10} tickLine={false} axisLine={false}

@@ -542,7 +542,7 @@ export default function DashboardHome({
         </div>
 
         <div className="h-64 sm:h-72 w-full">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <AreaChart 
               data={getLast7DaysData(recentOrders)} 
               margin={{ top: 10, right: 10, left: -20, bottom: 0 }}

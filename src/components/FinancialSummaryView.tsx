@@ -56,7 +56,21 @@ export default function FinancialSummaryView({ adminSecret, addToast }: Financia
       }
       
       if (analyticsResult) {
-        setAnalytics(analyticsResult);
+        const marginPct = summaryResult?.profit?.net_profit_margin_pct ?? 8;
+        const processedCharts = {
+          ...analyticsResult.charts,
+          daily_revenue: analyticsResult.charts.daily_revenue.map(item => ({
+            ...item,
+            // If net_revenue is equal to revenue, we estimate net profit based on actual margin or fallback to 8% margin
+            net_revenue: item.net_revenue === item.revenue 
+              ? Math.max(0, Math.round(item.revenue * (marginPct / 100))) 
+              : item.net_revenue
+          }))
+        };
+        setAnalytics({
+          ...analyticsResult,
+          charts: processedCharts
+        });
       }
     } catch (err: any) {
       addToast('error', err.message || 'Error occurred loading financial summary');
@@ -257,7 +271,7 @@ export default function FinancialSummaryView({ adminSecret, addToast }: Financia
             <p className="text-xs text-slate-500">Comparison of daily gross revenue and order-level net profit</p>
           </div>
           <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
               <AreaChart data={analytics.charts.daily_revenue} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="gRevenue" x1="0" y1="0" x2="0" y2="1">
