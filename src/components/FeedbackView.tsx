@@ -162,7 +162,7 @@ export default function FeedbackView({ adminSecret, addToast }: FeedbackViewProp
 
                 <div className="bg-white rounded-xl border border-slate-105 shadow-geometric p-6">
                   <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Survey Engagement</h3>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <p className="text-2xl font-black text-primary-blue">{overview.survey_stats.total_responses}</p>
                       <p className="text-[10px] text-slate-400">Answers</p>

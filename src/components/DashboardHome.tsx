@@ -223,11 +223,11 @@ export default function DashboardHome({
       </div>
 
       {/* STAT CARDS ROW */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {/* TOTAL USERS */}
         <motion.div 
           variants={cardVariants}
-          className="bg-white p-5 rounded-xl border border-slate-105 shadow-geometric flex flex-col justify-between group hover:shadow-geometric-lg hover:border-slate-300 transition-all cursor-pointer h-40"
+          className="bg-white p-5 rounded-xl border border-slate-105 shadow-geometric flex flex-col justify-between group hover:shadow-geometric-lg hover:border-slate-300 transition-all cursor-pointer min-h-[140px] h-full"
           onClick={onNavigateToUsers}
         >
           <div className="flex justify-between items-start">
@@ -247,7 +247,7 @@ export default function DashboardHome({
         {/* TOTAL ORDERS */}
         <motion.div 
           variants={cardVariants}
-          className="bg-white p-5 rounded-xl border border-slate-105 shadow-geometric flex flex-col justify-between group hover:shadow-geometric-lg hover:border-slate-300 transition-all cursor-pointer h-40"
+          className="bg-white p-5 rounded-xl border border-slate-105 shadow-geometric flex flex-col justify-between group hover:shadow-geometric-lg hover:border-slate-300 transition-all cursor-pointer min-h-[140px] h-full"
           onClick={() => onNavigateToOrders(false)}
         >
           <div className="flex justify-between items-start">
@@ -267,7 +267,7 @@ export default function DashboardHome({
         {/* NET REVENUE */}
         <motion.div 
           variants={cardVariants}
-          className="bg-white p-5 rounded-xl border border-slate-105 shadow-geometric flex flex-col justify-between group hover:shadow-geometric-lg hover:border-slate-300 transition-all h-40"
+          className="bg-white p-5 rounded-xl border border-slate-105 shadow-geometric flex flex-col justify-between group hover:shadow-geometric-lg hover:border-slate-300 transition-all min-h-[140px] h-full"
         >
           <div className="flex justify-between items-start">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Net Revenue</span>
@@ -286,7 +286,7 @@ export default function DashboardHome({
         {/* TOTAL CASHBACK GIVEN */}
         <motion.div 
           variants={cardVariants}
-          className="bg-white p-5 rounded-xl border border-slate-105 shadow-geometric flex flex-col justify-between group hover:shadow-geometric-lg hover:border-slate-300 transition-all h-40"
+          className="bg-white p-5 rounded-xl border border-slate-105 shadow-geometric flex flex-col justify-between group hover:shadow-geometric-lg hover:border-slate-300 transition-all min-h-[140px] h-full"
         >
           <div className="flex justify-between items-start">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total Cashback Given</span>
@@ -305,7 +305,7 @@ export default function DashboardHome({
         {/* BONUS OUTSTANDING */}
         <motion.div 
           variants={cardVariants}
-          className="bg-white p-5 rounded-xl border border-slate-105 shadow-geometric flex flex-col justify-between group hover:shadow-geometric-lg hover:border-slate-300 transition-all h-40"
+          className="bg-white p-5 rounded-xl border border-slate-105 shadow-geometric flex flex-col justify-between group hover:shadow-geometric-lg hover:border-slate-300 transition-all min-h-[140px] h-full"
         >
           <div className="flex justify-between items-start">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Bonus Outstanding</span>
@@ -327,7 +327,7 @@ export default function DashboardHome({
         <motion.div 
           variants={cardVariants}
           onClick={() => onNavigateToOrders(true)}
-          className={`p-5 rounded-xl border shadow-geometric flex flex-col justify-between cursor-pointer transition-all h-40 ${
+          className={`p-5 rounded-xl border shadow-geometric flex flex-col justify-between cursor-pointer transition-all min-h-[140px] h-full ${
             stats.pending_orders > 0 
               ? 'bg-amber-50/70 border-warning/40 hover:bg-amber-55 hover:border-warning hover:shadow-geometric-lg' 
               : 'bg-white border-slate-105 hover:border-slate-300 hover:shadow-geometric-lg'
@@ -359,7 +359,7 @@ export default function DashboardHome({
         <motion.div 
           variants={cardVariants}
           onClick={onNavigateToWithdrawals}
-          className={`p-5 rounded-xl border shadow-geometric flex flex-col justify-between cursor-pointer transition-all h-40 ${
+          className={`p-5 rounded-xl border shadow-geometric flex flex-col justify-between cursor-pointer transition-all min-h-[140px] h-full ${
             pendingWithdrawalsCount > 0 
               ? 'bg-red-50/70 border-red-200 hover:bg-white hover:border-red-500 hover:shadow-geometric-lg' 
               : 'bg-white border-slate-105 hover:border-slate-300 hover:shadow-geometric-lg'
@@ -391,7 +391,7 @@ export default function DashboardHome({
         <motion.div 
           variants={cardVariants}
           onClick={() => onNavigateToOrders(false, true)}
-          className={`p-5 rounded-xl border shadow-geometric flex flex-col justify-between cursor-pointer transition-all h-40 ${
+          className={`p-5 rounded-xl border shadow-geometric flex flex-col justify-between cursor-pointer transition-all min-h-[140px] h-full ${
             pendingBonuses.length > 0 
               ? 'bg-amber-50/70 border-warning/40 hover:bg-amber-55 hover:border-warning hover:shadow-geometric-lg' 
               : 'bg-white border-slate-105 hover:border-slate-300 hover:shadow-geometric-lg'

@@ -142,7 +142,7 @@ export default function BusinessPartnersView({ adminSecret, addToast }: Business
             </button>
           </div>
 
-          <div className="grid grid-cols-4 gap-4 mt-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
             <div>
               <p className="text-2xl font-black font-mono text-slate-900">{selectedDetail.total_referrals}</p>
               <p className="text-[10px] text-slate-400 uppercase">Total Referrals</p>
@@ -182,7 +182,7 @@ export default function BusinessPartnersView({ adminSecret, addToast }: Business
 
         <div className="bg-white rounded-xl border border-slate-105 shadow-geometric p-6">
           <h3 className="text-sm font-bold text-slate-700 mb-4">Payout Tracking</h3>
-          <div className="grid grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
             <div><p className="text-lg font-black">{formatNaira(p.total_earned)}</p><p className="text-[10px] text-slate-400">Total Earned</p></div>
             <div><p className="text-lg font-black text-success">{formatNaira(p.total_paid)}</p><p className="text-[10px] text-slate-400">Total Paid</p></div>
             <div><p className="text-lg font-black text-danger">{formatNaira(p.balance_owed)}</p><p className="text-[10px] text-slate-400">Balance Owed</p></div>

@@ -216,7 +216,7 @@ export default function AuditView({ adminSecret, addToast }: AuditViewProps) {
       </div>
 
       {/* METRIC OVERVIEW CARDS / BENTO GRID */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
           <span className="text-xs text-text-muted font-semibold tracking-wider uppercase">Logged Events</span>
           <div className="flex items-baseline gap-2 mt-2">
