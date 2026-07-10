@@ -87,7 +87,7 @@ export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, p
   return (
     <>
       {/* MOBILE TOP NAVIGATION BAR */}
-      <header className="lg:hidden h-16 bg-primary-dark w-full px-4 flex items-center justify-between z-30 fixed top-0 left-0 border-b border-white/5">
+      <header className="md:hidden h-16 bg-primary-dark w-full px-4 flex items-center justify-between z-30 fixed top-0 left-0 border-b border-white/5">
         <div className="flex items-center gap-2">
           <img 
             src="https://cdn-icons-png.flaticon.com/512/15106/15106527.png" 
@@ -110,16 +110,16 @@ export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, p
       {isOpen && (
         <div 
           onClick={toggleSidebar}
-          className="lg:hidden fixed inset-0 bg-black/60 z-30 backdrop-blur-sm"
+          className="md:hidden fixed inset-0 bg-black/60 z-30 backdrop-blur-sm"
         />
       )}
 
       {/* SIDEBAR WRAPPER */}
       <aside 
         id="sidebar"
-        className={`fixed inset-y-0 left-0 w-64 bg-primary-dark text-white flex flex-col z-40 transition-transform duration-300 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 w-64 bg-primary-dark text-white flex flex-col z-40 transition-transform duration-300 md:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:sticky lg:h-screen lg:top-0`}
+        }`}
       >
         {/* SIDEBAR HEADER */}
         <div className="h-20 flex items-center px-6 border-b border-white/5 gap-3 shrink-0">
