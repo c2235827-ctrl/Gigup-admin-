@@ -214,7 +214,7 @@ export default function App() {
 
   // Render main core workspace
   return (
-    <div id="admin-workspace" className="min-h-screen bg-bg flex flex-col md:flex-row font-sans max-w-[100vw] overflow-x-hidden selection:bg-primary-blue/30 text-text">
+    <div id="admin-workspace" className="min-h-screen bg-bg flex flex-col lg:flex-row font-sans max-w-[100vw] overflow-x-hidden selection:bg-primary-blue/30 text-text">
       {/* SIDEBAR NAVIGATION UNIT */}
       <Sidebar 
         activeTab={activeTab} 
@@ -233,7 +233,7 @@ export default function App() {
       />
 
       {/* CORE SCREEN CONTENT SHELF */}
-      <main className="flex-1 p-4 md:p-8 mt-16 md:mt-0 md:pl-64 max-w-full overflow-x-hidden">
+      <main className="flex-1 p-5 md:p-8 lg:p-10 mt-16 lg:mt-0 lg:pl-72 xl:pl-80 max-w-full overflow-x-hidden space-y-6">
         {isLoadingStats && !stats ? (
           // FULL PAGE BOOT SKELETON
           <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
