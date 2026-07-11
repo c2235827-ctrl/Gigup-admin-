@@ -22,7 +22,11 @@ export default function AmbassadorsView({ adminSecret, addToast, role = 'admin' 
   const [detail, setDetail] = useState<AmbassadorDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [form, setForm] = useState({ full_name: '', phone: '', email: '', pin: '', notes: '' });
+  const [form, setForm] = useState({
+    full_name: '', phone: '', email: '', pin: '', notes: '',
+    bank_name: '', account_number: '', account_name: ''
+  });
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   // States for PIN modal
@@ -86,20 +90,70 @@ export default function AmbassadorsView({ adminSecret, addToast, role = 'admin' 
     }
   };
 
+  const openEditModal = (amb: Ambassador) => {
+    const detailsAmb = (detail && detail.ambassador.id === amb.id) ? detail.ambassador : null;
+    setForm({
+      full_name: detailsAmb?.full_name ?? amb.full_name,
+      phone: detailsAmb?.phone ?? amb.phone,
+      email: detailsAmb?.email ?? amb.email ?? '',
+      pin: '',
+      notes: amb.notes || '',
+      bank_name: detailsAmb?.bank_name ?? amb.bank_name ?? '',
+      account_number: detailsAmb?.account_number ?? amb.account_number ?? '',
+      account_name: detailsAmb?.account_name ?? amb.account_name ?? '',
+    });
+    setEditingId(amb.id);
+    setShowCreateModal(true);
+  };
+
   const handleCreate = async () => {
-    if (!form.full_name || !form.phone || !form.pin) {
-      addToast('warning', 'Name, phone, and PIN are required');
+    if (!form.full_name || !form.phone) {
+      addToast('warning', 'Name and phone are required');
       return;
     }
+    if (!editingId && !form.pin) {
+      addToast('warning', 'PIN is required to create a new ambassador');
+      return;
+    }
+
     setSubmitting(true);
-    const result = await createAmbassador(adminSecret, form);
-    if (result.success) {
-      addToast('success', `Ambassador ${form.full_name} created! Code: ${result.ambassador?.referral_code}`);
-      setShowCreateModal(false);
-      setForm({ full_name: '', phone: '', email: '', pin: '', notes: '' });
-      load();
+    if (editingId) {
+      const payload: any = {
+        full_name: form.full_name,
+        phone: form.phone,
+        email: form.email || null,
+        notes: form.notes || null,
+        bank_name: form.bank_name || null,
+        account_number: form.account_number || null,
+        account_name: form.account_name || null,
+      };
+      if (form.pin) {
+        payload.pin = form.pin;
+      }
+      const result = await updateAmbassador(adminSecret, editingId, payload);
+      if (result.success) {
+        addToast('success', `Ambassador ${form.full_name} updated successfully!`);
+        setShowCreateModal(false);
+        setEditingId(null);
+        setForm({ full_name: '', phone: '', email: '', pin: '', notes: '', bank_name: '', account_number: '', account_name: '' });
+        load();
+        if (selectedId === editingId) {
+          setSelectedId(null);
+          setTimeout(() => openDetail(editingId), 100);
+        }
+      } else {
+        addToast('error', result.error || 'Failed to update ambassador');
+      }
     } else {
-      addToast('error', result.error || 'Failed to create ambassador');
+      const result = await createAmbassador(adminSecret, form);
+      if (result.success) {
+        addToast('success', `Ambassador ${form.full_name} created! Code: ${result.ambassador?.referral_code}`);
+        setShowCreateModal(false);
+        setForm({ full_name: '', phone: '', email: '', pin: '', notes: '', bank_name: '', account_number: '', account_name: '' });
+        load();
+      } else {
+        addToast('error', result.error || 'Failed to create ambassador');
+      }
     }
     setSubmitting(false);
   };
@@ -138,7 +192,7 @@ export default function AmbassadorsView({ adminSecret, addToast, role = 'admin' 
         {detail && !detailLoading && (
           <>
             <div className="bg-white rounded-xl border border-slate-105 shadow-geometric p-6">
-              <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center justify-between flex-wrap gap-4 pb-6 border-b border-slate-100">
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary-blue to-primary-dark flex items-center justify-center text-white font-black text-lg">
                     {getInitials(detail.ambassador.full_name)}
@@ -151,6 +205,27 @@ export default function AmbassadorsView({ adminSecret, addToast, role = 'admin' 
                 <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-4 py-2 cursor-pointer" onClick={() => copyCode(detail.ambassador.referral_code)}>
                   <span className="font-mono font-black text-primary-blue">{detail.ambassador.referral_code}</span>
                   <Copy className="w-3.5 h-3.5 text-primary-blue" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                <div className="bg-slate-50 rounded-xl p-4 space-y-2">
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Contact</h4>
+                  <p className="text-sm">📞 {detail.ambassador.phone}</p>
+                  {detail.ambassador.email && <p className="text-sm">✉️ {detail.ambassador.email}</p>}
+                </div>
+
+                <div className="bg-slate-50 rounded-xl p-4 space-y-2">
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Payment Details</h4>
+                  {detail.ambassador.bank_name ? (
+                    <>
+                      <p className="text-sm">🏦 {detail.ambassador.bank_name}</p>
+                      <p className="text-sm font-mono">{detail.ambassador.account_number}</p>
+                      <p className="text-sm text-slate-500">{detail.ambassador.account_name}</p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-amber-600">⚠️ No bank details on file — contact ambassador to collect before payout</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -251,6 +326,9 @@ export default function AmbassadorsView({ adminSecret, addToast, role = 'admin' 
 
             {role === 'admin' && (
             <div className="flex gap-3">
+              <button onClick={() => amb && openEditModal(amb)} className="px-4 py-2 text-xs font-bold rounded-lg border bg-blue-50 text-primary-blue border-blue-200 hover:bg-blue-50 cursor-pointer">
+                Edit Ambassador
+              </button>
               <button onClick={() => amb && handleToggleStatus(amb)} className="px-4 py-2 text-xs font-bold rounded-lg border bg-white text-slate-600 border-slate-200 hover:bg-slate-50 cursor-pointer">
                 {amb?.status === 'active' ? 'Suspend' : 'Activate'} Ambassador
               </button>
@@ -277,7 +355,7 @@ export default function AmbassadorsView({ adminSecret, addToast, role = 'admin' 
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-primary-blue' : ''}`} /> Refresh
           </button>
           {role === 'admin' && (
-          <button onClick={() => setShowCreateModal(true)} className="px-4 py-2 text-xs font-bold rounded-lg bg-primary-blue text-white flex items-center gap-2 cursor-pointer">
+          <button onClick={() => { setForm({ full_name: '', phone: '', email: '', pin: '', notes: '', bank_name: '', account_number: '', account_name: '' }); setEditingId(null); setShowCreateModal(true); }} className="px-4 py-2 text-xs font-bold rounded-lg bg-primary-blue text-white flex items-center gap-2 cursor-pointer">
             <Plus className="w-3.5 h-3.5" /> Add Ambassador
           </button>
           )}
@@ -329,20 +407,28 @@ export default function AmbassadorsView({ adminSecret, addToast, role = 'admin' 
 
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+          <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-5">
-              <h3 className="font-bold text-slate-900">Add Ambassador</h3>
+              <h3 className="font-bold text-slate-900">{editingId ? 'Edit Ambassador' : 'Add Ambassador'}</h3>
               <button onClick={() => setShowCreateModal(false)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center cursor-pointer"><X className="w-4 h-4" /></button>
             </div>
             <div className="space-y-3">
               <input placeholder="Full Name" value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
               <input placeholder="Phone Number" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
               <input placeholder="Email (optional)" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
-              <input placeholder="4-digit PIN for login" maxLength={4} value={form.pin} onChange={e => setForm({ ...form, pin: e.target.value.replace(/\D/g,'') })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
+              <input placeholder={editingId ? '4-digit PIN (leave empty to keep current)' : '4-digit PIN for login'} maxLength={4} value={form.pin} onChange={e => setForm({ ...form, pin: e.target.value.replace(/\D/g,'') })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
+              
+              <div className="border-t border-slate-100 pt-3 mt-3 space-y-3">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Payment Details</p>
+                <input placeholder="Bank Name" value={form.bank_name} onChange={e => setForm({ ...form, bank_name: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
+                <input placeholder="Account Number" value={form.account_number} onChange={e => setForm({ ...form, account_number: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
+                <input placeholder="Account Name" value={form.account_name} onChange={e => setForm({ ...form, account_name: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
+              </div>
+
               <textarea placeholder="Notes (optional)" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" rows={2} />
             </div>
             <button onClick={handleCreate} disabled={submitting} className="w-full mt-4 py-3 bg-primary-blue text-white font-bold rounded-xl text-sm cursor-pointer">
-              {submitting ? 'Creating...' : 'Create Ambassador'}
+              {submitting ? (editingId ? 'Saving...' : 'Creating...') : (editingId ? 'Save Changes' : 'Create Ambassador')}
             </button>
           </motion.div>
         </div>

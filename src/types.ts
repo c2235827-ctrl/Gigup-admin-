@@ -270,6 +270,7 @@ export interface Ambassador {
   status: 'active' | 'suspended'; notes: string | null; created_at: string;
   total_signups?: number; qualified_signups?: number;
   current_tier_pay?: number; next_tier_at?: number | null;
+  bank_name?: string | null; account_number?: string | null; account_name?: string | null;
 }
 export interface AmbassadorStats {
   total_signups: number; qualified_signups: number; total_orders: number;
@@ -278,7 +279,17 @@ export interface AmbassadorStats {
   next_tier_at: number | null; next_tier_pay: number | null; level2_referrals: number;
 }
 export interface AmbassadorDetail {
-  ambassador: { id: string; full_name: string; phone: string; referral_code: string; status: string };
+  ambassador: {
+    id: string;
+    full_name: string;
+    phone: string;
+    referral_code: string;
+    status: string;
+    email?: string | null;
+    bank_name?: string | null;
+    account_number?: string | null;
+    account_name?: string | null;
+  };
   stats: AmbassadorStats;
   direct_referrals: Array<{ id: string; full_name: string; phone: string; qualified: boolean; wallet_balance: number; cashback_balance: number; created_at: string }>;
   level2_referrals: Array<{ id: string; full_name: string; phone: string; first_topup_done: boolean; created_at: string; referred_by: string }>;
@@ -530,6 +541,9 @@ export interface BusinessPartner {
   total_referrals: number;
   qualified_referrals: number;
   created_at: string;
+  bank_name?: string | null;
+  account_number?: string | null;
+  account_name?: string | null;
 }
 
 export interface BusinessPartnerDetail {

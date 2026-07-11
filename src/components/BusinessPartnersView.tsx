@@ -28,6 +28,12 @@ export default function BusinessPartnersView({ adminSecret, addToast }: Business
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newPartner, setNewPartner] = useState({
     business_name: '', contact_name: '', phone: '', email: '', business_type: 'restaurant', notes: '',
+    bank_name: '', account_number: '', account_name: '',
+  });
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editPartner, setEditPartner] = useState({
+    id: '', business_name: '', contact_name: '', phone: '', email: '', business_type: 'restaurant', notes: '',
+    bank_name: '', account_number: '', account_name: '',
   });
   const [payoutAmount, setPayoutAmount] = useState('');
 
@@ -45,6 +51,39 @@ export default function BusinessPartnersView({ adminSecret, addToast }: Business
     if (detail) setSelectedDetail(detail);
   };
 
+  const handleOpenEditModal = (p: BusinessPartner) => {
+    setEditPartner({
+      id: p.id,
+      business_name: p.business_name,
+      contact_name: p.contact_name || '',
+      phone: p.phone,
+      email: p.email || '',
+      business_type: p.business_type,
+      notes: p.notes || '',
+      bank_name: p.bank_name || '',
+      account_number: p.account_number || '',
+      account_name: p.account_name || '',
+    });
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editPartner.business_name.trim() || !editPartner.phone.trim()) {
+      addToast('warning', 'Business name and phone are required');
+      return;
+    }
+    const { id, ...updates } = editPartner;
+    const result = await updateBusinessPartner(adminSecret, id, updates);
+    if (result.success) {
+      addToast('success', 'Partner updated successfully!');
+      setShowEditModal(false);
+      handleViewDetail(id);
+      load();
+    } else {
+      addToast('error', 'Failed to update partner');
+    }
+  };
+
   const handleCreate = async () => {
     if (!newPartner.business_name.trim() || !newPartner.phone.trim()) {
       addToast('warning', 'Business name and phone are required');
@@ -54,7 +93,7 @@ export default function BusinessPartnersView({ adminSecret, addToast }: Business
     if (result.success) {
       addToast('success', `Partner created! Code: ${result.partner?.referral_code}`);
       setShowCreateModal(false);
-      setNewPartner({ business_name: '', contact_name: '', phone: '', email: '', business_type: 'restaurant', notes: '' });
+      setNewPartner({ business_name: '', contact_name: '', phone: '', email: '', business_type: 'restaurant', notes: '', bank_name: '', account_number: '', account_name: '' });
       load();
     } else {
       addToast('error', 'Failed to create partner');
@@ -135,6 +174,19 @@ export default function BusinessPartnersView({ adminSecret, addToast }: Business
             }`}>{p.status.toUpperCase()}</span>
           </div>
 
+          <div className="bg-slate-50 rounded-xl p-4 space-y-2 mt-4">
+            <h4 className="text-xs font-bold text-slate-500 uppercase">Payment Details</h4>
+            {p.bank_name ? (
+              <>
+                <p className="text-sm">🏦 {p.bank_name}</p>
+                <p className="text-sm font-mono">{p.account_number}</p>
+                <p className="text-sm text-slate-500">{p.account_name}</p>
+              </>
+            ) : (
+              <p className="text-xs text-amber-600">⚠️ No bank details on file — contact partner to collect before payout</p>
+            )}
+          </div>
+
           <div className="flex items-center gap-2 mt-4 bg-slate-50 rounded-xl p-3">
             <code className="text-sm font-bold text-primary-blue flex-1">{p.referral_code}</code>
             <button onClick={() => handleCopyLink(p.referral_code)} className="p-2 bg-white rounded-lg border cursor-pointer">
@@ -162,6 +214,9 @@ export default function BusinessPartnersView({ adminSecret, addToast }: Business
           </div>
 
           <div className="flex gap-2 mt-4">
+            <button onClick={() => handleOpenEditModal(p)} className="px-4 py-2 bg-blue-50 text-primary-blue border border-blue-200 rounded-lg text-xs font-bold cursor-pointer">
+              ✏ Edit Partner
+            </button>
             <button onClick={() => handleRecalculate(p.id)} className="px-4 py-2 bg-slate-100 rounded-lg text-xs font-bold flex items-center gap-2 cursor-pointer">
               <RefreshCw className="w-3.5 h-3.5" /> Recalculate Tier
             </button>
@@ -268,9 +323,64 @@ export default function BusinessPartnersView({ adminSecret, addToast }: Business
                 <option value="community_org">Community/Youth Org</option>
                 <option value="other">Other</option>
               </select>
+              <input placeholder="Bank Name" value={newPartner.bank_name} onChange={e => setNewPartner({ ...newPartner, bank_name: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
+              <input placeholder="Account Number" value={newPartner.account_number} onChange={e => setNewPartner({ ...newPartner, account_number: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
+              <input placeholder="Account Name" value={newPartner.account_name} onChange={e => setNewPartner({ ...newPartner, account_name: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
               <textarea placeholder="Notes (optional)" value={newPartner.notes} onChange={e => setNewPartner({ ...newPartner, notes: e.target.value })} rows={2} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
             </div>
             <button onClick={handleCreate} className="w-full mt-4 py-3 bg-primary-blue text-white font-bold rounded-xl text-sm cursor-pointer">Create Partner & Generate Code</button>
+          </motion.div>
+        </div>
+      )}
+
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-5">
+              <h3 className="font-bold text-slate-900">Edit Business Partner</h3>
+              <button onClick={() => setShowEditModal(false)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center cursor-pointer"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Business Name</label>
+                <input placeholder="Business Name" value={editPartner.business_name} onChange={e => setEditPartner({ ...editPartner, business_name: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Contact Person Name</label>
+                <input placeholder="Contact Person Name" value={editPartner.contact_name} onChange={e => setEditPartner({ ...editPartner, contact_name: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Phone</label>
+                <input placeholder="Phone" value={editPartner.phone} onChange={e => setEditPartner({ ...editPartner, phone: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Email</label>
+                <input placeholder="Email (optional)" value={editPartner.email} onChange={e => setEditPartner({ ...editPartner, email: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Business Type</label>
+                <select value={editPartner.business_type} onChange={e => setEditPartner({ ...editPartner, business_type: e.target.value as any })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm">
+                  <option value="restaurant">Restaurant</option>
+                  <option value="cybercafe">Cybercafe</option>
+                  <option value="pos_agent">POS Agent</option>
+                  <option value="community_org">Community/Youth Org</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div className="border-t border-slate-100 pt-3 mt-3 space-y-3">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Payment Details</p>
+                <input placeholder="Bank Name" value={editPartner.bank_name} onChange={e => setEditPartner({ ...editPartner, bank_name: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
+                <input placeholder="Account Number" value={editPartner.account_number} onChange={e => setEditPartner({ ...editPartner, account_number: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
+                <input placeholder="Account Name" value={editPartner.account_name} onChange={e => setEditPartner({ ...editPartner, account_name: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Notes</label>
+                <textarea placeholder="Notes (optional)" value={editPartner.notes} onChange={e => setEditPartner({ ...editPartner, notes: e.target.value })} rows={2} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
+              </div>
+            </div>
+            <button onClick={handleSaveEdit} className="w-full mt-4 py-3 bg-primary-blue text-white font-bold rounded-xl text-sm cursor-pointer">Save Changes</button>
           </motion.div>
         </div>
       )}

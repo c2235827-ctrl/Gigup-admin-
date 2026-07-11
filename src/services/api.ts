@@ -421,6 +421,7 @@ export async function fetchAmbassadorDetail(secret: string, ambassadorId: string
 
 export async function createAmbassador(secret: string, payload: {
   full_name: string; phone: string; email?: string; pin: string; notes?: string;
+  bank_name?: string; account_number?: string; account_name?: string;
 }): Promise<{ success: boolean; ambassador?: Ambassador; error?: string }> {
   const res = await fetch(`${BASE_URL}/admin-ambassadors`, {
     method: 'POST', headers: getHeaders(secret),
@@ -711,6 +712,7 @@ export async function fetchBusinessPartnerDetail(secret: string, id: string): Pr
 export async function createBusinessPartner(secret: string, payload: {
   business_name: string; contact_name?: string; phone: string; email?: string;
   business_type?: string; notes?: string;
+  bank_name?: string; account_number?: string; account_name?: string;
 }): Promise<{ success: boolean; partner?: BusinessPartner; signup_link?: string }> {
   const res = await fetch(`${BASE_URL}/admin-business-partners?action=create`, {
     method: 'POST', headers: getHeaders(secret), body: JSON.stringify(payload),
