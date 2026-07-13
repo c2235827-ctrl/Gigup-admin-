@@ -1,8 +1,21 @@
 import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary, InactiveAccount, UserStreakAdmin, Ambassador, AmbassadorStats, AmbassadorDetail, FinancialSummary, FinancialReport, AppRating, SurveyResponseItem, SurveyQuestion, FeedbackOverview, RechargeCardStats, RechargeCardConfig, RechargeCardSubscription, RechargeCardOrder, ReconciliationItem, RechargeCardOverview, PeyflexRate, DenominationBreakdownItem, BusinessPartner, BusinessPartnerDetail, BlacklistedIp, IpCluster } from '../types';
 
-const BASE_URL = typeof window !== 'undefined'
-  ? `${window.location.origin}/api-proxy`
-  : 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
+const SUPABASE_URL = 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
+
+const getBaseUrl = () => {
+  if (typeof window === 'undefined') {
+    return SUPABASE_URL;
+  }
+  
+  // Only use the API proxy if we are running in the AI Studio local/development container environment (localhost or Cloud Run)
+  const isCloudRunOrLocal = window.location.hostname === 'localhost' || 
+                            window.location.hostname === '127.0.0.1' || 
+                            window.location.hostname.endsWith('.run.app');
+                            
+  return isCloudRunOrLocal ? `${window.location.origin}/api-proxy` : SUPABASE_URL;
+};
+
+const BASE_URL = getBaseUrl();
 
 export const SETTING_LABELS: Record<string, { label: string; desc: string }> = {
   cashback_rate: { label: 'Cashback Rate (%)', desc: 'Percentage cashback awarded to users on every data purchase' },
