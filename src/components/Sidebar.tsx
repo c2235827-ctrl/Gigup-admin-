@@ -9,6 +9,7 @@ import {
   Menu, 
   X, 
   ShieldCheck, 
+  ShieldAlert,
   Database,
   Coins,
   BarChart2,
@@ -26,7 +27,7 @@ import {
   Store
 } from 'lucide-react';
 
-export type ActiveTab = 'dashboard' | 'orders' | 'withdrawals' | 'users' | 'plans' | 'settings' | 'analytics' | 'export' | 'audit' | 'margins' | 'activity' | 'push' | 'inactive' | 'streaks' | 'ambassadors' | 'feedback' | 'recharge_cards' | 'business_partners';
+export type ActiveTab = 'dashboard' | 'orders' | 'withdrawals' | 'users' | 'plans' | 'settings' | 'analytics' | 'export' | 'audit' | 'margins' | 'activity' | 'push' | 'inactive' | 'streaks' | 'ambassadors' | 'feedback' | 'recharge_cards' | 'business_partners' | 'ip_security';
 
 interface SidebarProps {
   activeTab: ActiveTab;
@@ -68,6 +69,7 @@ export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, p
     { id: 'feedback' as ActiveTab, label: 'Feedback & Surveys', icon: MessageSquareText },
     { id: 'recharge_cards' as ActiveTab, label: 'Recharge Cards', icon: CreditCard },
     { id: 'push' as ActiveTab, label: 'Push Notifications', icon: Bell },
+    { id: 'ip_security' as ActiveTab, label: 'IP Security', icon: ShieldAlert },
     { id: 'export' as ActiveTab, label: 'Export Users', icon: Download },
     { id: 'inactive' as ActiveTab, label: 'Inactive Accounts', icon: Trash2 },
     { id: 'audit' as ActiveTab, label: 'Audit Logs', icon: History },

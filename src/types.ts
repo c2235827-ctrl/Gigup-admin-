@@ -554,4 +554,18 @@ export interface BusinessPartnerDetail {
   current_tier: { tier_label: string; monthly_pay: number };
 }
 
+export interface BlacklistedIp {
+  id: string;
+  ip_address: string;
+  reason: string | null;
+  blacklisted_by: string;
+  created_at: string;
+}
+
+export interface IpCluster {
+  ip_address: string;
+  account_count: number;
+  accounts: { id: string; full_name: string; phone: string; signup_ip: string; created_at: string }[];
+}
+
 

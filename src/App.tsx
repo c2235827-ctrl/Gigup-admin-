@@ -28,6 +28,7 @@ import BusinessPartnersView from './components/BusinessPartnersView';
 import FinancialReportView from './components/FinancialReportView';
 import FeedbackView from './components/FeedbackView';
 import RechargeCardsView from './components/RechargeCardsView';
+import IpSecurityView from './components/IpSecurityView';
 
 export default function App() {
   // Session Authentication State
@@ -387,6 +388,10 @@ export default function App() {
 
               {activeTab === 'recharge_cards' && (
                 <RechargeCardsView adminSecret={adminSecret || ''} addToast={addToast} />
+              )}
+
+              {activeTab === 'ip_security' && (
+                <IpSecurityView adminSecret={adminSecret || ''} addToast={addToast} />
               )}
 
               {activeTab === 'audit' && (

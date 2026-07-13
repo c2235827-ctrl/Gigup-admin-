@@ -1,6 +1,8 @@
-import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary, InactiveAccount, UserStreakAdmin, Ambassador, AmbassadorStats, AmbassadorDetail, FinancialSummary, FinancialReport, AppRating, SurveyResponseItem, SurveyQuestion, FeedbackOverview, RechargeCardStats, RechargeCardConfig, RechargeCardSubscription, RechargeCardOrder, ReconciliationItem, RechargeCardOverview, PeyflexRate, DenominationBreakdownItem, BusinessPartner, BusinessPartnerDetail } from '../types';
+import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary, InactiveAccount, UserStreakAdmin, Ambassador, AmbassadorStats, AmbassadorDetail, FinancialSummary, FinancialReport, AppRating, SurveyResponseItem, SurveyQuestion, FeedbackOverview, RechargeCardStats, RechargeCardConfig, RechargeCardSubscription, RechargeCardOrder, ReconciliationItem, RechargeCardOverview, PeyflexRate, DenominationBreakdownItem, BusinessPartner, BusinessPartnerDetail, BlacklistedIp, IpCluster } from '../types';
 
-const BASE_URL = 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
+const BASE_URL = typeof window !== 'undefined'
+  ? `${window.location.origin}/api-proxy`
+  : 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
 
 export const SETTING_LABELS: Record<string, { label: string; desc: string }> = {
   cashback_rate: { label: 'Cashback Rate (%)', desc: 'Percentage cashback awarded to users on every data purchase' },
@@ -744,6 +746,32 @@ export async function recalculatePartnerTier(secret: string, id: string): Promis
 export async function recordPartnerPayout(secret: string, id: string, amount: number): Promise<{ success: boolean; partner?: BusinessPartner }> {
   const res = await fetch(`${BASE_URL}/admin-business-partners?action=record_payout`, {
     method: 'POST', headers: getHeaders(secret), body: JSON.stringify({ id, amount }),
+  });
+  return await res.json();
+}
+
+export async function fetchBlacklist(secret: string): Promise<BlacklistedIp[]> {
+  const res = await fetch(`${BASE_URL}/admin-ip-blacklist?action=list`, { headers: getHeaders(secret) });
+  const data = await res.json();
+  return data.blacklist ?? [];
+}
+
+export async function fetchIpClusters(secret: string): Promise<IpCluster[]> {
+  const res = await fetch(`${BASE_URL}/admin-ip-blacklist?action=clusters`, { headers: getHeaders(secret) });
+  const data = await res.json();
+  return data.clusters ?? [];
+}
+
+export async function addToBlacklist(secret: string, ip_address: string, reason?: string): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE_URL}/admin-ip-blacklist?action=add`, {
+    method: 'POST', headers: getHeaders(secret), body: JSON.stringify({ ip_address, reason }),
+  });
+  return await res.json();
+}
+
+export async function removeFromBlacklist(secret: string, ip_address: string): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE_URL}/admin-ip-blacklist?action=remove`, {
+    method: 'POST', headers: getHeaders(secret), body: JSON.stringify({ ip_address }),
   });
   return await res.json();
 }
