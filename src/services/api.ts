@@ -1,21 +1,6 @@
 import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary, InactiveAccount, UserStreakAdmin, Ambassador, AmbassadorStats, AmbassadorDetail, FinancialSummary, FinancialReport, AppRating, SurveyResponseItem, SurveyQuestion, FeedbackOverview, RechargeCardStats, RechargeCardConfig, RechargeCardSubscription, RechargeCardOrder, ReconciliationItem, RechargeCardOverview, PeyflexRate, DenominationBreakdownItem, BusinessPartner, BusinessPartnerDetail, BlacklistedIp, IpCluster } from '../types';
 
-const SUPABASE_URL = 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
-
-const getBaseUrl = () => {
-  if (typeof window === 'undefined') {
-    return SUPABASE_URL;
-  }
-  
-  // Only use the API proxy if we are running in the AI Studio local/development container environment (localhost or Cloud Run)
-  const isCloudRunOrLocal = window.location.hostname === 'localhost' || 
-                            window.location.hostname === '127.0.0.1' || 
-                            window.location.hostname.endsWith('.run.app');
-                            
-  return isCloudRunOrLocal ? `${window.location.origin}/api-proxy` : SUPABASE_URL;
-};
-
-const BASE_URL = getBaseUrl();
+const BASE_URL = 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
 
 export const SETTING_LABELS: Record<string, { label: string; desc: string }> = {
   cashback_rate: { label: 'Cashback Rate (%)', desc: 'Percentage cashback awarded to users on every data purchase' },
@@ -390,24 +375,12 @@ export async function deleteInactiveUser(
 }
 
 export async function fetchUserStreaks(secret: string): Promise<UserStreakAdmin[]> {
-  const res = await fetch(`${BASE_URL}/admin-user-activity`, {
+  const res = await fetch(`${BASE_URL}/admin-streaks`, {
     headers: getHeaders(secret)
   });
   if (!res.ok) throw new Error('Failed to load streaks');
   const data = await res.json();
-  // Merge streak data with user data
-  return (data.users ?? []).map((u: any) => ({
-    user_id: u.id,
-    full_name: u.full_name,
-    phone: u.phone,
-    current_streak: u.current_streak ?? 0,
-    longest_streak: u.longest_streak ?? 0,
-    last_activity_date: u.last_seen_at,
-    streak_reward_7_claimed: false,
-    streak_reward_14_claimed: false,
-    streak_reward_21_claimed: false,
-    streak_reward_30_claimed: false,
-  }));
+  return data.streaks ?? [];
 }
 
 export async function triggerScheduledNotification(
