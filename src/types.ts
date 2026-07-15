@@ -6,6 +6,7 @@ export interface Stats {
   total_cashback_given: number;
   net_revenue: number;
   orders_by_network: Record<string, number>;
+  top_spenders?: { id: string; full_name: string; phone: string; wallet_balance: number; total_spent: number; successful_orders?: number }[];
 }
 
 export interface Order {
@@ -86,6 +87,7 @@ export interface DashboardData {
   stats: Stats;
   recent_orders: Order[];
   recent_users: User[];
+  top_spenders?: { id: string; full_name: string; phone: string; wallet_balance: number; total_spent: number; successful_orders?: number }[];
 }
 
 export interface AnalyticsSummary {

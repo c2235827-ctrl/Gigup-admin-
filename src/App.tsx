@@ -132,6 +132,7 @@ export default function App() {
       const statsObj = dashboardData.stats;
       if (statsObj) {
         statsObj.net_revenue = statsObj.total_revenue - statsObj.total_cashback_given;
+        statsObj.top_spenders = dashboardData.top_spenders ?? [];
       }
       setStats(statsObj);
       setRecentOrders(dashboardData.recent_orders);

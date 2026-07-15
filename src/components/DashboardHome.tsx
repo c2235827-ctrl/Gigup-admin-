@@ -137,10 +137,8 @@ export default function DashboardHome({
     };
   }, [stats]);
 
-  // Extract top spenders sorted by total_spent descending
-  const topSpenders = [...recentUsers]
-    .sort((a, b) => (b.total_spent || 0) - (a.total_spent || 0))
-    .slice(0, 4);
+  // Get top spenders from backend stats
+  const topSpenders = stats.top_spenders ?? [];
 
   // Calculate percentages for network breakdown
   const ordersByNetwork = stats.orders_by_network || {};
