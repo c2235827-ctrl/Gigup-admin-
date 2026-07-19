@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Zap, Phone, Tv, RefreshCw, CheckCircle, Clock, XCircle } from 'lucide-react';
-import { fetchUtilityServicesSummary, fetchUtilityOrders, fetchUtilitySettings, toggleUtilityService } from '../services/api';
+import { Zap, Phone, Tv, RefreshCw, CheckCircle, Clock, XCircle, ShieldAlert } from 'lucide-react';
+import { fetchUtilityServicesSummary, fetchUtilityOrders, fetchUtilitySettings, toggleUtilityService, retryPendingUtilityOrders } from '../services/api';
 import { UtilityServicesSummary, UtilityOrder } from '../types';
 import { formatNaira } from '../utils/formatters';
 
@@ -18,6 +18,7 @@ export default function UtilityServicesView({ adminSecret, addToast }: UtilitySe
   const [activeService, setActiveService] = useState<ServiceTab>('airtime');
   const [orders, setOrders] = useState<UtilityOrder[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   const loadSummaryAndSettings = async () => {
     try {
@@ -66,6 +67,29 @@ export default function UtilityServicesView({ adminSecret, addToast }: UtilitySe
     }
   };
 
+  const handleRetryPending = async () => {
+    if (isRetrying) return;
+    setIsRetrying(true);
+    addToast('info', 'Retrying pending airtime, cable, and electricity orders...');
+    try {
+      const result = await retryPendingUtilityOrders(adminSecret);
+      if (result.success) {
+        addToast(
+          'success',
+          `Retried ${result.summary.total} orders — ${result.summary.fulfilled} fulfilled, ${result.summary.still_pending} still pending, ${result.summary.failed} failed.`
+        );
+        loadSummaryAndSettings();
+        loadOrders(activeService);
+      } else {
+        addToast('error', 'Failed to retry pending utility orders');
+      }
+    } catch (err: any) {
+      addToast('error', err?.message || 'Error executing retry operation');
+    } finally {
+      setIsRetrying(false);
+    }
+  };
+
   const statusBadge = (status: string) => {
     if (status === 'success') return <span className="flex items-center gap-1 text-xs font-bold text-success"><CheckCircle className="w-3.5 h-3.5" /> Success</span>;
     if (status === 'pending') return <span className="flex items-center gap-1 text-xs font-bold text-amber-600"><Clock className="w-3.5 h-3.5" /> Pending</span>;
@@ -74,9 +98,19 @@ export default function UtilityServicesView({ adminSecret, addToast }: UtilitySe
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Airtime, Cable & Electricity</h1>
-        <p className="text-xs text-slate-400 mt-1">Zero-profit discount-passthrough services — monitor volume and provider health here</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Airtime, Cable & Electricity</h1>
+          <p className="text-xs text-slate-400 mt-1">Zero-profit discount-passthrough services — monitor volume and provider health here</p>
+        </div>
+        <button
+          onClick={handleRetryPending}
+          disabled={isRetrying}
+          className={`px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 text-white text-xs font-bold rounded-lg flex items-center gap-2 cursor-pointer shadow-geometric transition-colors self-start sm:self-auto`}
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isRetrying ? 'animate-spin' : ''}`} />
+          Retry Pending Orders
+        </button>
       </div>
 
       {summary && (

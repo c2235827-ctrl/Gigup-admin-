@@ -789,6 +789,16 @@ export async function toggleUtilityService(secret: string, service: 'airtime' | 
   return await res.json();
 }
 
+export async function retryPendingUtilityOrders(secret: string): Promise<{
+  success: boolean;
+  summary: { total: number; fulfilled: number; still_pending: number; failed: number };
+}> {
+  const res = await fetch(`${BASE_URL}/retry-pending-utility-orders`, {
+    method: 'POST', headers: getHeaders(secret),
+  });
+  return await res.json();
+}
+
 
 
 
