@@ -24,10 +24,11 @@ import {
   FileText,
   MessageSquareText,
   CreditCard,
-  Store
+  Store,
+  Zap
 } from 'lucide-react';
 
-export type ActiveTab = 'dashboard' | 'orders' | 'withdrawals' | 'users' | 'plans' | 'settings' | 'analytics' | 'export' | 'audit' | 'margins' | 'activity' | 'push' | 'inactive' | 'streaks' | 'ambassadors' | 'feedback' | 'recharge_cards' | 'business_partners' | 'ip_security';
+export type ActiveTab = 'dashboard' | 'orders' | 'withdrawals' | 'users' | 'plans' | 'settings' | 'analytics' | 'export' | 'audit' | 'margins' | 'activity' | 'push' | 'inactive' | 'streaks' | 'ambassadors' | 'feedback' | 'recharge_cards' | 'business_partners' | 'ip_security' | 'utility_services' | 'financial';
 
 interface SidebarProps {
   activeTab: ActiveTab;
@@ -68,6 +69,7 @@ export default function Sidebar({ activeTab, setActiveTab, pendingOrdersCount, p
     { id: 'business_partners' as ActiveTab, label: 'Business Partners', icon: Store },
     { id: 'feedback' as ActiveTab, label: 'Feedback & Surveys', icon: MessageSquareText },
     { id: 'recharge_cards' as ActiveTab, label: 'Recharge Cards', icon: CreditCard },
+    { id: 'utility_services' as ActiveTab, label: 'Airtime, Cable & Electricity', icon: Zap },
     { id: 'push' as ActiveTab, label: 'Push Notifications', icon: Bell },
     { id: 'ip_security' as ActiveTab, label: 'IP Security', icon: ShieldAlert },
     { id: 'export' as ActiveTab, label: 'Export Users', icon: Download },

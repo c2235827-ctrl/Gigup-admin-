@@ -1,4 +1,4 @@
-import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary, InactiveAccount, UserStreakAdmin, Ambassador, AmbassadorStats, AmbassadorDetail, FinancialSummary, FinancialReport, AppRating, SurveyResponseItem, SurveyQuestion, FeedbackOverview, RechargeCardStats, RechargeCardConfig, RechargeCardSubscription, RechargeCardOrder, ReconciliationItem, RechargeCardOverview, PeyflexRate, DenominationBreakdownItem, BusinessPartner, BusinessPartnerDetail, BlacklistedIp, IpCluster } from '../types';
+import { Stats, Order, User, Plan, AppSetting, DashboardData, Withdrawal, GatewayStatus, AnalyticsData, MarginsData, UserActivity, SessionRecord, ActivitySummary, InactiveAccount, UserStreakAdmin, Ambassador, AmbassadorStats, AmbassadorDetail, FinancialSummary, FinancialReport, AppRating, SurveyResponseItem, SurveyQuestion, FeedbackOverview, RechargeCardStats, RechargeCardConfig, RechargeCardSubscription, RechargeCardOrder, ReconciliationItem, RechargeCardOverview, PeyflexRate, DenominationBreakdownItem, BusinessPartner, BusinessPartnerDetail, BlacklistedIp, IpCluster, UtilityServicesSummary, UtilityOrder } from '../types';
 
 const BASE_URL = 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
 
@@ -758,6 +758,33 @@ export async function addToBlacklist(secret: string, ip_address: string, reason?
 export async function removeFromBlacklist(secret: string, ip_address: string): Promise<{ success: boolean }> {
   const res = await fetch(`${BASE_URL}/admin-ip-blacklist?action=remove`, {
     method: 'POST', headers: getHeaders(secret), body: JSON.stringify({ ip_address }),
+  });
+  return await res.json();
+}
+
+export async function fetchUtilityServicesSummary(secret: string): Promise<UtilityServicesSummary | null> {
+  const res = await fetch(`${BASE_URL}/admin-utility-services?action=summary`, { headers: getHeaders(secret) });
+  const data = await res.json();
+  return data.success ? data : null;
+}
+
+export async function fetchUtilityOrders(secret: string, service: 'airtime' | 'cable' | 'electricity', status?: string): Promise<UtilityOrder[]> {
+  const params = new URLSearchParams({ action: 'orders', service });
+  if (status) params.set('status', status);
+  const res = await fetch(`${BASE_URL}/admin-utility-services?${params.toString()}`, { headers: getHeaders(secret) });
+  const data = await res.json();
+  return data.orders ?? [];
+}
+
+export async function fetchUtilitySettings(secret: string): Promise<{ airtime_enabled: boolean; cable_enabled: boolean; electricity_enabled: boolean; peyflex_token_configured: boolean } | null> {
+  const res = await fetch(`${BASE_URL}/admin-utility-services?action=settings`, { headers: getHeaders(secret) });
+  const data = await res.json();
+  return data.success ? data : null;
+}
+
+export async function toggleUtilityService(secret: string, service: 'airtime' | 'cable' | 'electricity', enabled: boolean): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE_URL}/admin-utility-services?action=update_settings`, {
+    method: 'POST', headers: getHeaders(secret), body: JSON.stringify({ service, enabled }),
   });
   return await res.json();
 }

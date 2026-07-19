@@ -570,4 +570,40 @@ export interface IpCluster {
   accounts: { id: string; full_name: string; phone: string; signup_ip: string; created_at: string }[];
 }
 
+export interface UtilityServiceSummary {
+  total_orders: number;
+  successful: number;
+  pending: number;
+  failed: number;
+  total_revenue: number;
+  total_cost: number;
+  profit: number;
+}
+
+export interface UtilityServicesSummary {
+  airtime: UtilityServiceSummary;
+  cable: UtilityServiceSummary;
+  electricity: UtilityServiceSummary;
+  combined: UtilityServiceSummary & { note: string };
+}
+
+export interface UtilityOrder {
+  id: string;
+  status: 'success' | 'pending' | 'failed';
+  created_at: string;
+  failure_reason: string | null;
+  users: { full_name: string; phone: string } | null;
+  recipient_phone?: string;
+  network?: string;
+  amount?: number;
+  peyflex_cost?: number;
+  provider?: string;
+  plan_label?: string;
+  iuc?: string;
+  amount_charged?: number;
+  disco_name?: string;
+  meter_number?: string;
+  token?: string;
+}
+
 
