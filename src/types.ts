@@ -125,6 +125,7 @@ export interface AnalyticsData {
     by_day_of_week: Array<{ day: string; orders: number; revenue: number }>;
     by_hour: Array<{ hour: number; label: string; orders: number; revenue: number }>;
     by_network: Array<{ network: string; orders: number; revenue: number; failed: number }>;
+    by_provider_other?: Array<{ network: string; orders: number; revenue: number; failed: number }>;
     signups_by_day: Array<{ day: string; count: number }>;
   };
 }

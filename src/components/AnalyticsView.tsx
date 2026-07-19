@@ -385,6 +385,25 @@ export default function AnalyticsView({ adminSecret, addToast }: AnalyticsViewPr
             </div>
           </motion.div>
 
+          {/* SECTION 6B — Cable TV & Electricity Providers */}
+          {data.charts.by_provider_other && data.charts.by_provider_other.length > 0 && (
+            <motion.div variants={cardVariants} className="bg-white rounded-xl border border-slate-105 shadow-geometric p-6">
+              <h3 className="text-sm font-bold text-slate-900 mb-1">Cable TV & Electricity Providers</h3>
+              <p className="text-xs text-text-muted mb-6">Volume by provider (separate from telecom networks — zero profit)</p>
+              <div className="space-y-3">
+                {data.charts.by_provider_other.map((p) => (
+                  <div key={p.network} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                    <span className="font-bold text-slate-800 text-sm">{p.network}</span>
+                    <div className="text-right">
+                      <span className="block text-sm font-bold font-mono text-slate-900">{p.orders} orders</span>
+                      <span className="block text-xs font-mono text-primary-blue">{formatNaira(p.revenue)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
           {/* SECTION 7 — Signups Over Time */}
           <motion.div variants={cardVariants} className="bg-white rounded-xl border border-slate-105 shadow-geometric p-6">
             <h3 className="text-sm font-bold text-slate-900 mb-1">New User Signups</h3>
