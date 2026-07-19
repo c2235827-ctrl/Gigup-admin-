@@ -269,6 +269,7 @@ export default function App() {
                   onNavigateToOrders={handleNavigateToOrders}
                   onNavigateToUsers={handleNavigateToUsers}
                   onNavigateToWithdrawals={() => setActiveTab('withdrawals')}
+                  onNavigateToUtilityServices={() => setActiveTab('utility_services')}
                   onSelectOrder={setSelectedOrder}
                   onRefresh={() => fetchDashboardStats(true)}
                   isRefreshing={isRefreshingStats}

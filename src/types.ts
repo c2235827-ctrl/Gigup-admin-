@@ -7,6 +7,13 @@ export interface Stats {
   net_revenue: number;
   orders_by_network: Record<string, number>;
   top_spenders?: { id: string; full_name: string; phone: string; wallet_balance: number; total_spent: number; successful_orders?: number }[];
+  utility_services?: {
+    airtime: { total_orders: number; successful: number; pending: number; failed: number; total_volume: number };
+    cable: { total_orders: number; successful: number; pending: number; failed: number; total_volume: number };
+    electricity: { total_orders: number; successful: number; pending: number; failed: number; total_volume: number };
+    total_pending: number;
+    total_volume: number;
+  };
 }
 
 export interface Order {
