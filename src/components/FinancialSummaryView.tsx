@@ -459,6 +459,49 @@ export default function FinancialSummaryView({ adminSecret, addToast }: Financia
         </div>
       </div>
 
+      {/* Recharge Cards Section */}
+      {data.recharge_cards && (
+        <div>
+          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">Recharge Cards</h2>
+          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div>
+              <p className="text-2xl font-black font-mono text-slate-900">{data.recharge_cards.successful_orders}</p>
+              <p className="text-[10px] text-slate-400 uppercase font-semibold">Successful Orders</p>
+            </div>
+            <div>
+              <p className="text-2xl font-black font-mono text-slate-900">{formatNaira(data.recharge_cards.revenue)}</p>
+              <p className="text-[10px] text-slate-400 uppercase font-semibold">Revenue</p>
+            </div>
+            <div>
+              <p className="text-2xl font-black font-mono text-slate-900">{formatNaira(data.recharge_cards.peyflex_cost)}</p>
+              <p className="text-[10px] text-slate-400 uppercase font-semibold">Peyflex Cost</p>
+            </div>
+            <div>
+              <p className="text-2xl font-black font-mono text-emerald-600">{formatNaira(data.recharge_cards.total_profit)}</p>
+              <p className="text-[10px] text-slate-400 uppercase font-semibold">Total Profit</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Deposit Margin (Real Profit) Section */}
+      {data.deposit_margin && (
+        <div className="bg-white rounded-xl border border-slate-105 shadow-geometric p-6">
+          <h3 className="text-sm font-bold text-slate-700 mb-4">💳 Deposit Margin (Real Profit)</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-2xl font-black text-success">{formatNaira(data.deposit_margin.total_profit)}</p>
+              <p className="text-[10px] text-slate-400 uppercase">Total Margin Profit</p>
+            </div>
+            <div>
+              <p className="text-2xl font-black">{data.deposit_margin.successful_deposits_with_margin}</p>
+              <p className="text-[10px] text-slate-400 uppercase">Deposits With Margin</p>
+            </div>
+          </div>
+          <p className="text-[11px] text-slate-400 mt-3 italic">{data.deposit_margin.note}</p>
+        </div>
+      )}
+
       {/* Cancelled / Failed Transactions informational card */}
       <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200/60 shadow-xs flex gap-4">
         <div className="p-2.5 bg-white text-slate-400 rounded-xl shrink-0 h-10 w-10 flex items-center justify-center border border-slate-200 shadow-sm">

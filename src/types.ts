@@ -323,6 +323,11 @@ export interface FinancialSummary {
     subscription_revenue: number;
     total_profit: number;
   };
+  deposit_margin?: {
+    total_profit: number;
+    successful_deposits_with_margin: number;
+    note: string;
+  };
   cashback: { paid_on_successful_orders: number; owed_on_pending_orders: number };
   smedata: { cost_of_successful_orders: number; funding_needed_for_pending: number; recommendation: string };
   expenses: {
