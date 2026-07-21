@@ -812,6 +812,21 @@ export async function toggleMaintenanceMode(secret: string, active: boolean, tit
   return await res.json();
 }
 
+export async function fetchAllServiceMaintenance(secret: string): Promise<any[]> {
+  const res = await fetch(`${BASE_URL}/admin-service-maintenance`, { headers: getHeaders(secret) });
+  const data = await res.json();
+  return data.services ?? [];
+}
+
+export async function toggleServiceMaintenance(secret: string, serviceKey: string, active: boolean, title?: string, message?: string, durationHours?: number): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${BASE_URL}/admin-service-maintenance`, {
+    method: 'POST',
+    headers: getHeaders(secret),
+    body: JSON.stringify({ service_key: serviceKey, active, title, message, duration_hours: durationHours }),
+  });
+  return await res.json();
+}
+
 
 
 
