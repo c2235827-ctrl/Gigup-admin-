@@ -21,6 +21,7 @@ import { AppSetting, GatewayStatus } from '../types';
 import { fetchManageData, updateAppSetting, SETTING_LABELS, fetchGatewayStatus, updateGateway } from '../services/api';
 import { formatNaira } from '../utils/formatters';
 import { addAuditLog } from '../utils/auditLogger';
+import MaintenanceModeCard from './MaintenanceModeCard';
 
 interface SettingsViewProps {
   adminSecret: string;
@@ -227,6 +228,9 @@ export default function SettingsView({ adminSecret, addToast }: SettingsViewProp
           <span>Refresh All</span>
         </button>
       </div>
+
+      {/* PLATFORM MAINTENANCE MODE STATUS & TOGGLE */}
+      <MaintenanceModeCard adminSecret={adminSecret} addToast={addToast} />
 
       {/* PAYMENT GATEWAY CONFIGURATION CARD */}
       <motion.div

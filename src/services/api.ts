@@ -799,6 +799,19 @@ export async function retryPendingUtilityOrders(secret: string): Promise<{
   return await res.json();
 }
 
+export async function fetchMaintenanceMode(secret: string): Promise<{ active: boolean; title: string; message: string; started_at: string | null } | null> {
+  const res = await fetch(`${BASE_URL}/admin-maintenance-mode`, { headers: getHeaders(secret) });
+  const data = await res.json();
+  return data.success ? data : null;
+}
+
+export async function toggleMaintenanceMode(secret: string, active: boolean, title?: string, message?: string): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${BASE_URL}/admin-maintenance-mode`, {
+    method: 'POST', headers: getHeaders(secret), body: JSON.stringify({ active, title, message }),
+  });
+  return await res.json();
+}
+
 
 
 
